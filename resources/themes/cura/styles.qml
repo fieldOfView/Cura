@@ -266,7 +266,7 @@ QtObject {
             scrollBarBackground: UM.AngledCornerRectangle {
                 implicitWidth: UM.Theme.sizes.scrollbar.width;
 
-                cornerSize: UM.Theme.sizes.scrollbar.width;
+                cornerSize: 0;
 
                 color: UM.Theme.colors.scrollbar_background;
             }

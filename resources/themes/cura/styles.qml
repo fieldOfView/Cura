@@ -221,7 +221,7 @@ QtObject {
                     }
                 }
                 Behavior on color { ColorAnimation { duration: 50; } }
-                cornerSize: UM.Theme.sizes.default_margin.width;
+                cornerSize: 0;
             }
             label: Item {
                 anchors.fill: parent;

@@ -75,7 +75,7 @@ Rectangle {
                 anchors.leftMargin: UM.Theme.sizes.save_button_text_margin.width;
                 visible: base.progress >= 0 && base.progress < 0.99 ? false : true
                 color: UM.Theme.colors.save_button_estimated_text;
-                font: UM.Theme.fonts.small;
+                font: UM.Theme.fonts.default;
                 text:
                     if(base.activity == false) {
                         //: Save button label
@@ -88,7 +88,7 @@ Rectangle {
                     }
                     else if (base.progress > 0.99){
                         //: Save button label
-                        return qsTr("Estimated Print-time");
+                        return qsTr("");
                     }
             }
             Label {
@@ -97,7 +97,7 @@ Rectangle {
                 anchors.left: label.right;
                 anchors.leftMargin: UM.Theme.sizes.save_button_text_margin.width;
                 color: UM.Theme.colors.save_button_printtime_text;
-                font: UM.Theme.fonts.small;
+                font: UM.Theme.fonts.default;
                 visible: base.activity == false || base.progress < 0.99 ? false : true
                 text: (!base.printDuration || !base.printDuration.valid) ? "" : base.printDuration.getDisplayString(UM.DurationFormat.Long);
             }
@@ -107,7 +107,7 @@ Rectangle {
                 anchors.left: printDurationLabel.right;
                 anchors.leftMargin: UM.Theme.sizes.save_button_text_margin.width;
                 color: base.printDuration.days > 0 ? UM.Theme.colors.save_button_estimated_text : UM.Theme.colors.save_button_printtime_text;
-                font: UM.Theme.fonts.small;
+                font: UM.Theme.fonts.default;
                 property bool mediumLengthDuration: base.printDuration.hours > 9 && base.printMaterialAmount > 9.99 && base.printDuration.days == 0
                 width: mediumLengthDuration ? 50 : undefined
                 elide: mediumLengthDuration ? Text.ElideRight : Text.ElideNone

@@ -42,7 +42,7 @@
             "family": "Roboto"
         },
         "setting_category": {
-            "size": 1.5,
+            "size": 1.0,
             "family": "Roboto"
         }
     },
@@ -128,17 +128,17 @@
 
     "sizes": {
         "window_margin": [2.0, 2.0],
-        "default_margin": [1.0, 1.0],
+        "default_margin": [1.0, 0.25],
         "panel": [22.0, 10.0],
         "logo": [0.0, 0.0],
         "toolbar_button": [2.0, 2.0],
         "toolbar_spacing": [1.0, 1.0],
 
-        "section": [22.0, 3.0],
-        "section_icon": [2.14, 2.14],
+        "section": [22.0, 1.5],
+        "section_icon": [1.25, 1.25],
         "section_text_margin": [0.33, 0.33],
 
-        "setting": [21.0, 2.0],
+        "setting": [21.0, 1.75],
         "setting_control": [6.0, 2.0],
         "setting_control_margin": [3.0, 3.0],
         "setting_unit_margin": [0.5, 0.5],

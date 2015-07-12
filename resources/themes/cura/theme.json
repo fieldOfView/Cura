@@ -130,7 +130,7 @@
         "window_margin": [2.0, 2.0],
         "default_margin": [1.0, 1.0],
         "panel": [22.0, 10.0],
-        "logo": [9.5, 2.0],
+        "logo": [0.0, 0.0],
         "toolbar_button": [2.0, 2.0],
         "toolbar_spacing": [1.0, 1.0],
 

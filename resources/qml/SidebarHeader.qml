@@ -109,17 +109,4 @@ Column {
             }
         }
     }
-
-    UM.SidebarCategoryHeader {
-        width: parent.width;
-        height: UM.Theme.sizes.section.height;
-
-        iconSource: UM.Theme.icons.printsetup;
-
-        //: Sidebar header label
-        text: qsTr("Print Setup");
-        enabled: false;
-
-        color: UM.Theme.colors.primary;
-    }
 }

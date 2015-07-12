@@ -275,7 +275,7 @@ QtObject {
                 id: scrollViewHandle
                 implicitWidth: UM.Theme.sizes.scrollbar.width;
 
-                cornerSize: UM.Theme.sizes.scrollbar.width;
+                cornerSize: 0;
 
                 color: styleData.pressed ? UM.Theme.colors.scrollbar_handle_down : styleData.hovered ? UM.Theme.colors.scrollbar_handle_hover : UM.Theme.colors.scrollbar_handle;
                 Behavior on color { ColorAnimation { duration: 50; } }

@@ -138,9 +138,9 @@
         "section_icon": [1.25, 1.25],
         "section_text_margin": [0.33, 0.33],
 
-        "setting": [21.0, 1.75],
-        "setting_control": [6.0, 2.0],
-        "setting_control_margin": [3.0, 3.0],
+        "setting": [21.5, 1.75],
+        "setting_control": [9.0, 2.0],
+        "setting_control_margin": [0.5, 3.0],
         "setting_unit_margin": [0.5, 0.5],
         "setting_text_maxwidth": [40.0, 0.0],
 

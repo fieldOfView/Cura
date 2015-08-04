@@ -88,6 +88,19 @@ Rectangle {
             }
         }
 
+        UM.SidebarCategoryHeader {
+            width: parent.width;
+            height: UM.Theme.sizes.section.height;
+
+            iconSource: UM.Theme.icons.save;
+
+            //: Sidebar header label
+            text: qsTr("Print Job");
+            enabled: false;
+
+            color: UM.Theme.colors.sidebar_header;
+        }
+
         SaveButton {
             id: saveButton;
             implicitWidth: base.width

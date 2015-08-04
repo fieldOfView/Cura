@@ -22,7 +22,7 @@ Column {
         anchors.horizontalCenter: parent.horizontalCenter;
 
         width: parent.width - UM.Theme.sizes.default_margin.width * 2;
-        height: UM.Theme.sizes.line.height;
+        height: 0;
 
         Label {
             //: Configuration mode label
@@ -108,5 +108,18 @@ Column {
                 MenuItem { action: base.configureMachinesAction; }
             }
         }
+    }
+
+    UM.SidebarCategoryHeader {
+        width: parent.width;
+        height: UM.Theme.sizes.section.height;
+
+        iconSource: UM.Theme.icons.printsetup;
+
+        //: Sidebar header label
+        text: qsTr("Print Setup");
+        enabled: false;
+
+        color: UM.Theme.colors.sidebar_header;
     }
 }

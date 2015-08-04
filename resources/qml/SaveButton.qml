@@ -52,8 +52,6 @@ Rectangle {
         implicitWidth: base.width;
         implicitHeight: parent.height;
         color: UM.Theme.colors.save_button_background;
-        border.width: UM.Theme.sizes.save_button_border.width
-        border.color: UM.Theme.colors.save_button_border
 
         Rectangle {
             id: infoBox

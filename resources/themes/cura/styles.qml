@@ -170,17 +170,17 @@ QtObject {
     property Component progressbar: Component{
         ProgressBarStyle {
             background: UM.AngledCornerRectangle {
-                cornerSize: UM.Theme.sizes.progressbar_control.height
+                cornerSize: 0
                 implicitWidth: UM.Theme.sizes.progressbar.width
                 implicitHeight: UM.Theme.sizes.progressbar.height
                 color: UM.Theme.colors.progressbar_background
             }
             progress: UM.AngledCornerRectangle {
-                cornerSize: UM.Theme.sizes.progressbar_control.height
+                cornerSize: 0
                 color: control.indeterminate ? "transparent" : UM.Theme.colors.progressbar_control
 
                 UM.AngledCornerRectangle {
-                    cornerSize: UM.Theme.sizes.progressbar_control.height
+                    cornerSize: 0
                     color: UM.Theme.colors.progressbar_control
                     width: UM.Theme.sizes.progressbar_control.width
                     height: UM.Theme.sizes.progressbar_control.height

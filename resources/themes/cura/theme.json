@@ -49,6 +49,7 @@
 
     "colors": {
         "sidebar": [255, 255, 255, 255],
+        "sidebar_header": [35, 35, 35, 255],
 
         "primary": [12, 169, 227, 255],
         "primary_hover": [34, 150, 190, 255],
@@ -118,7 +119,7 @@
         "save_button_estimated_text": [140, 144, 154, 255],
         "save_button_estimated_text_background": [255, 255, 255, 255],
         "save_button_printtime_text": [12, 169, 227, 255],
-        "save_button_background": [249, 249, 249, 255],
+        "save_button_background": [255, 255, 255, 255],
 
         "message": [160, 163, 171, 255],
         "message_text": [35, 35, 35, 255],
@@ -129,17 +130,17 @@
     "sizes": {
         "window_margin": [2.0, 2.0],
         "default_margin": [1.0, 0.25],
-        "panel": [22.0, 10.0],
+        "panel": [26.0, 10.0],
         "logo": [0.0, 0.0],
         "toolbar_button": [2.0, 2.0],
         "toolbar_spacing": [1.0, 1.0],
 
-        "section": [22.0, 1.5],
+        "section": [26.0, 1.5],
         "section_icon": [1.25, 1.25],
         "section_text_margin": [0.33, 0.33],
 
-        "setting": [21.5, 1.75],
-        "setting_control": [9.0, 2.0],
+        "setting": [25.5, 1.75],
+        "setting_control": [12.0, 2.0],
         "setting_control_margin": [0.5, 3.0],
         "setting_unit_margin": [0.5, 0.5],
         "setting_text_maxwidth": [40.0, 0.0],
@@ -172,6 +173,7 @@
         "save_button_save_to_button": [0.3, 2.7],
 
         "message": [30.0, 5.0],
+        "message_margin": [1.0, 1.0],	
         "message_close": [1.25, 1.25]
     }
 }

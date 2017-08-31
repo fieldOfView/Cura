@@ -1,0 +1,7 @@
+{
+	"name": "BlackBelt plugin",
+	"author": "fieldOfView",
+	"version": "2.7",
+	"api": 4,
+	"description": "Extension to support the angled gantry of BlackBelt printers"
+}

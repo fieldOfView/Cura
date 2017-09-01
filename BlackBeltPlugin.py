@@ -1,5 +1,7 @@
 from UM.Extension import Extension
 from UM.Application import Application
+from UM.Preferences import Preferences
+
 from UM.Scene.Selection import Selection
 from UM.Scene.SceneNode import SceneNode
 from UM.Math.Matrix import Matrix
@@ -17,6 +19,35 @@ class BlackBeltPlugin(Extension):
         super().__init__()
         self.addMenuItem(i18n_catalog.i18n("Skew selected model(s)"), self.skewForBlackBelt)
         self.addMenuItem(i18n_catalog.i18n("Unskew selected model(s)"), self.unskewForBlackBelt)
+
+        self._preferences_fixed = False
+        Application.getInstance().globalContainerStackChanged.connect(self._fix_preferences)
+
+    def _fix_preferences(self):
+        # This is delayed from __init__ because it does not work otherwise
+        if self._preferences_fixed:
+            return
+        self._preferences_fixed = True
+
+        preferences = Preferences.getInstance()
+        visible_settings = preferences.getValue("general/visible_settings")
+        visible_settings_changed = False
+        for key in ["blackbelt_settings", "blackbelt_gantry_angle"]:
+            if key not in visible_settings:
+                visible_settings += ";%s" % key
+                visible_settings_changed = True
+
+        if not visible_settings_changed:
+            return
+
+        preferences.setValue("general/visible_settings", visible_settings)
+
+        expanded_settings = preferences.getValue("cura/categories_expanded")
+        for key in ["blackbelt_settings"]:
+            if key not in expanded_settings:
+                expanded_settings += ";%s" % key
+        preferences.setValue("cura/categories_expanded", expanded_settings)
+
 
     ##  Skews all selected objects for BlackBelt printing
     def skewForBlackBelt(self):

@@ -20,13 +20,30 @@ class BlackBeltPlugin(Extension):
         self.addMenuItem(i18n_catalog.i18n("Skew selected model(s)"), self.skewForBlackBelt)
         self.addMenuItem(i18n_catalog.i18n("Unskew selected model(s)"), self.unskewForBlackBelt)
 
+        self._global_container_stack = None
         self._preferences_fixed = False
-        Application.getInstance().globalContainerStackChanged.connect(self._fix_preferences)
+        Application.getInstance().globalContainerStackChanged.connect(self._onGlobalContainerStackChanged)
+        self._onGlobalContainerStackChanged()
 
-    def _fix_preferences(self):
-        # This is delayed from __init__ because it does not work otherwise
-        if self._preferences_fixed:
-            return
+    def _onGlobalContainerStackChanged(self):
+        if not self._preferences_fixed:
+            # This is run only once, but is delayed from __init__ because it does not work otherwise
+            self._fixPreferences()
+
+        if self._global_container_stack:
+            self._global_container_stack.propertyChanged.disconnect(self._onSettingValueChanged)
+        self._global_container_stack = Application.getInstance().getGlobalContainerStack()
+        if self._global_container_stack:
+            self._global_container_stack.propertyChanged.connect(self._onSettingValueChanged)
+
+    def _onSettingValueChanged(self, key, property_name):
+        if key in ["blackbelt_gantry_angle"] and property_name == "value":
+            # Setting the gantry angle changes the build volume.
+            # Force rebuilding the build volume by reloading the global container stack.
+            # This is a bit of a hack, but it seems quick enough.
+            Application.getInstance().globalContainerStackChanged.emit()
+
+    def _fixPreferences(self):
         self._preferences_fixed = True
 
         preferences = Preferences.getInstance()
@@ -89,8 +106,7 @@ class BlackBeltPlugin(Extension):
         self.applyTransformToNodes(selected_nodes, transform_matrix.getInverse())
 
     def makeTransformMatrix(self):
-        global_container_stack = Application.getInstance().getGlobalContainerStack()
-        gantry_angle = math.radians(float(global_container_stack.getProperty("blackbelt_gantry_angle", "value")))
+        gantry_angle = math.radians(float(self._global_container_stack.getProperty("blackbelt_gantry_angle", "value")))
         if not gantry_angle:
             return
 
@@ -101,5 +117,5 @@ class BlackBeltPlugin(Extension):
 
     def applyTransformToNodes(self, nodes, transform):
         for node in nodes:
-            matrix = node.getLocalTransformation().multiply(transform)
+            matrix = node.getLocalTransformation().preMultiply(transform)
             node.setTransformation(matrix)

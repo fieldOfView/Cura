@@ -1,6 +1,8 @@
 from UM.Extension import Extension
 from UM.Application import Application
 from UM.Preferences import Preferences
+from UM.Resources import Resources
+from UM.Logger import Logger
 
 from UM.Scene.Selection import Selection
 from UM.Scene.SceneNode import SceneNode
@@ -13,6 +15,8 @@ i18n_catalog = i18nCatalog("BlackBeltPlugin")
 
 import numpy
 import math
+import os.path
+from shutil import copy2
 
 class BlackBeltPlugin(Extension):
     def __init__(self):
@@ -24,6 +28,18 @@ class BlackBeltPlugin(Extension):
         self._preferences_fixed = False
         Application.getInstance().globalContainerStackChanged.connect(self._onGlobalContainerStackChanged)
         self._onGlobalContainerStackChanged()
+
+        # See if the definition that is distributed with the plugin is newer than the one in the configuration folder
+        plugin_definition_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "definitions", "blackbelt.def.json")
+        config_definition_path = os.path.join(Resources.getStoragePath(Resources.DefinitionContainers), "blackbelt.def.json")
+        try:
+            config_definition_mtime = os.path.getmtime(config_definition_path)
+        except FileNotFoundError:
+            config_definition_mtime = 0
+
+        if config_definition_mtime < os.path.getmtime(plugin_definition_path):
+            Logger.log("d", "Copying BlackBelt definition to configuration folder")
+            copy2(plugin_definition_path, config_definition_path)
 
     def _onGlobalContainerStackChanged(self):
         if not self._preferences_fixed:

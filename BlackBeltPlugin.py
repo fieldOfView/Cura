@@ -49,10 +49,12 @@ class BlackBeltPlugin(Extension):
             Application.getInstance().globalContainerStackChanged.emit()
 
     def _fixPreferences(self):
-        self._preferences_fixed = True
-
         preferences = Preferences.getInstance()
         visible_settings = preferences.getValue("general/visible_settings")
+        if not visible_settings:
+            # Wait until the default visible settings have been set
+            return
+
         visible_settings_changed = False
         for key in ["blackbelt_settings", "blackbelt_gantry_angle", "blackbelt_nozzle_size"]:
             if key not in visible_settings:
@@ -65,10 +67,14 @@ class BlackBeltPlugin(Extension):
         preferences.setValue("general/visible_settings", visible_settings)
 
         expanded_settings = preferences.getValue("cura/categories_expanded")
+        if expanded_settings is None:
+            expanded_settings = ""
         for key in ["blackbelt_settings"]:
             if key not in expanded_settings:
                 expanded_settings += ";%s" % key
         preferences.setValue("cura/categories_expanded", expanded_settings)
+
+        self._preferences_fixed = True
 
 
     ##  Skews all selected objects for BlackBelt printing

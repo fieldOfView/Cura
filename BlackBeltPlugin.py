@@ -36,6 +36,11 @@ class BlackBeltPlugin(Extension):
         if self._global_container_stack:
             self._global_container_stack.propertyChanged.connect(self._onSettingValueChanged)
 
+            # HACK: Move blackbelt_settings to the top of the list of settings
+            definition_container = self._global_container_stack.getBottom()
+            if definition_container._definitions[len(definition_container._definitions) -1].key == "blackbelt_settings":
+                definition_container._definitions.insert(0, definition_container._definitions.pop(len(definition_container._definitions) -1))
+
     def _onSettingValueChanged(self, key, property_name):
         if key in ["blackbelt_gantry_angle"] and property_name == "value":
             # Setting the gantry angle changes the build volume.

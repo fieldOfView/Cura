@@ -13,6 +13,8 @@ from UM.Message import Message
 from UM.i18n import i18nCatalog
 i18n_catalog = i18nCatalog("BlackBeltPlugin")
 
+from PyQt5.QtGui import QPixmap
+
 import numpy
 import math
 import os.path
@@ -21,8 +23,15 @@ from shutil import copy2
 class BlackBeltPlugin(Extension):
     def __init__(self):
         super().__init__()
+        plugin_path = os.path.dirname(os.path.abspath(__file__))
+
         self.addMenuItem(i18n_catalog.i18n("Skew selected model(s)"), self.skewForBlackBelt)
         self.addMenuItem(i18n_catalog.i18n("Unskew selected model(s)"), self.unskewForBlackBelt)
+
+        splash_screen = Application.getInstance()._splash
+        splash_image = QPixmap(os.path.join(plugin_path, "images", "splash.png"))
+        splash_screen.setPixmap(splash_image.scaled(splash_image.size() * splash_screen._scale))
+        splash_screen.repaint()
 
         self._global_container_stack = None
         self._preferences_fixed = False
@@ -30,7 +39,7 @@ class BlackBeltPlugin(Extension):
         self._onGlobalContainerStackChanged()
 
         # See if the definition that is distributed with the plugin is newer than the one in the configuration folder
-        plugin_definition_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "definitions", "blackbelt.def.json")
+        plugin_definition_path = os.path.join(plugin_path, "definitions", "blackbelt.def.json")
         config_definition_path = os.path.join(Resources.getStoragePath(Resources.DefinitionContainers), "blackbelt.def.json")
         try:
             config_definition_mtime = os.path.getmtime(config_definition_path)

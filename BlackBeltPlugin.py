@@ -54,7 +54,7 @@ class BlackBeltPlugin(Extension):
         preferences = Preferences.getInstance()
         visible_settings = preferences.getValue("general/visible_settings")
         visible_settings_changed = False
-        for key in ["blackbelt_settings", "blackbelt_gantry_angle"]:
+        for key in ["blackbelt_settings", "blackbelt_gantry_angle", "blackbelt_nozzle_size"]:
             if key not in visible_settings:
                 visible_settings += ";%s" % key
                 visible_settings_changed = True

@@ -40,7 +40,8 @@ class BlackBeltPlugin(Extension):
 
         # See if the definition that is distributed with the plugin is newer than the one in the configuration folder
         plugin_definition_path = os.path.join(plugin_path, "definitions", "blackbelt.def.json")
-        config_definition_path = os.path.join(Resources.getStoragePath(Resources.DefinitionContainers), "blackbelt.def.json")
+        config_definition_path = os.path.join(Resources.getPath(Resources.Preferences, ""), "definitions", "blackbelt.def.json")
+        os.makedirs(os.path.dirname(config_definition_path), exist_ok=True)
         try:
             config_definition_mtime = os.path.getmtime(config_definition_path)
         except FileNotFoundError:

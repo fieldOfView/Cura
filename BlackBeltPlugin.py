@@ -3,12 +3,13 @@ from UM.Application import Application
 from UM.Preferences import Preferences
 from UM.Resources import Resources
 from UM.Logger import Logger
+from UM.Message import Message
 
 from UM.Scene.Selection import Selection
 from UM.Scene.SceneNode import SceneNode
+from UM.Scene.SceneNodeDecorator import SceneNodeDecorator
 from UM.Math.Matrix import Matrix
 from UM.Math.Vector import Vector
-from UM.Message import Message
 
 from UM.i18n import i18nCatalog
 i18n_catalog = i18nCatalog("BlackBeltPlugin")
@@ -28,14 +29,16 @@ class BlackBeltPlugin(Extension):
         self.addMenuItem(i18n_catalog.i18n("Skew selected model(s)"), self.skewForBlackBelt)
         self.addMenuItem(i18n_catalog.i18n("Unskew selected model(s)"), self.unskewForBlackBelt)
 
-        splash_screen = Application.getInstance()._splash
+        self._application = Application.getInstance()
+
+        splash_screen = self._application._splash
         splash_image = QPixmap(os.path.join(plugin_path, "images", "splash.png"))
         splash_screen.setPixmap(splash_image.scaled(splash_image.size() * splash_screen._scale))
         splash_screen.repaint()
 
         self._global_container_stack = None
         self._preferences_fixed = False
-        Application.getInstance().globalContainerStackChanged.connect(self._onGlobalContainerStackChanged)
+        self._application.globalContainerStackChanged.connect(self._onGlobalContainerStackChanged)
         self._onGlobalContainerStackChanged()
 
         # See if the definition that is distributed with the plugin is newer than the one in the configuration folder
@@ -51,6 +54,10 @@ class BlackBeltPlugin(Extension):
             Logger.log("d", "Copying BlackBelt definition to configuration folder")
             copy2(plugin_definition_path, config_definition_path)
 
+        self._scene_root = self._application.getController().getScene().getRoot()
+        self._scene_root.addDecorator(BlackBeltDecorator())
+        self._application.getBackend().slicingStarted.connect(self._onSlicingStarted)
+
     def _onGlobalContainerStackChanged(self):
         if not self._preferences_fixed:
             # This is run only once, but is delayed from __init__ because it does not work otherwise
@@ -58,7 +65,7 @@ class BlackBeltPlugin(Extension):
 
         if self._global_container_stack:
             self._global_container_stack.propertyChanged.disconnect(self._onSettingValueChanged)
-        self._global_container_stack = Application.getInstance().getGlobalContainerStack()
+        self._global_container_stack = self._application.getGlobalContainerStack()
         if self._global_container_stack:
             self._global_container_stack.propertyChanged.connect(self._onSettingValueChanged)
 
@@ -67,12 +74,18 @@ class BlackBeltPlugin(Extension):
             if definition_container._definitions[len(definition_container._definitions) -1].key == "blackbelt_settings":
                 definition_container._definitions.insert(0, definition_container._definitions.pop(len(definition_container._definitions) -1))
 
+    def _onSlicingStarted(self):
+        transform_matrix = self.makeTransformMatrix()
+        if not transform_matrix:
+            transform_matrix = Matrix()
+        self._scene_root.callDecoration("setTransformMatrix", transform_matrix)
+
     def _onSettingValueChanged(self, key, property_name):
         if key in ["blackbelt_gantry_angle"] and property_name == "value":
             # Setting the gantry angle changes the build volume.
             # Force rebuilding the build volume by reloading the global container stack.
             # This is a bit of a hack, but it seems quick enough.
-            Application.getInstance().globalContainerStackChanged.emit()
+            self._application.globalContainerStackChanged.emit()
 
     def _fixPreferences(self):
         preferences = Preferences.getInstance()
@@ -112,7 +125,7 @@ class BlackBeltPlugin(Extension):
 
         # Apply shear transformation
         transform_matrix = self.makeTransformMatrix()
-        if not transform_matrix:
+        if transform_matrix == Matrix():
             Message(i18n_catalog.i18nc("@info:status", "Cannot skew model(s). Gantry angle is not set.")).show()
             return
         self.applyTransformToNodes(selected_nodes, transform_matrix)
@@ -121,9 +134,9 @@ class BlackBeltPlugin(Extension):
 
         # Glorious hack: BlackBelt has no disallowed areas
         # This makes sure the object does not conflict with a tiny "brim" around the buildvolume (which should be 0-width but isn't)
-        Application.getInstance().getBuildVolume().setDisallowedAreas([])
+        self._application.getBuildVolume().setDisallowedAreas([])
 
-        build_volume_front = Application.getInstance().getBuildVolume().getBoundingBox().front
+        build_volume_front = self._application.getBuildVolume().getBoundingBox().front
         for node in selected_nodes:
             node_front = node.getBoundingBox().front
             node.translate(Vector(0, 0, build_volume_front - node_front), SceneNode.TransformSpace.World)
@@ -137,15 +150,16 @@ class BlackBeltPlugin(Extension):
 
         # Apply inverse of shear transformation (instead of doing a proper undo)
         transform_matrix = self.makeTransformMatrix()
-        if not transform_matrix:
+        if transform_matrix == Matrix():
             Message(i18n_catalog.i18nc("@info:status", "Cannot unskew model(s). Gantry angle is not set.")).show()
             return
         self.applyTransformToNodes(selected_nodes, transform_matrix.getInverse())
 
     def makeTransformMatrix(self):
-        gantry_angle = math.radians(float(self._global_container_stack.getProperty("blackbelt_gantry_angle", "value")))
+        gantry_angle = self._global_container_stack.getProperty("blackbelt_gantry_angle", "value")
         if not gantry_angle:
-            return
+            return Matrix()
+        gantry_angle = math.radians(float(gantry_angle))
 
         matrix_data = numpy.identity(4)
         matrix_data[2, 2] = 1/math.sin(gantry_angle)  # scale Z
@@ -156,3 +170,15 @@ class BlackBeltPlugin(Extension):
         for node in nodes:
             matrix = node.getLocalTransformation().preMultiply(transform)
             node.setTransformation(matrix)
+
+## Simple decorator to indicate a scene node holds layer data.
+class BlackBeltDecorator(SceneNodeDecorator):
+    def __init__(self):
+        super().__init__()
+        self._transform_matrix = Matrix()
+
+    def getTransformMatrix(self):
+        return self._transform_matrix
+
+    def setTransformMatrix(self, transform_matrix):
+        self._transform_matrix = transform_matrix

@@ -34,7 +34,6 @@ class BlackBeltPlugin(Extension):
         splash_screen.repaint()
 
         self._global_container_stack = None
-        self._preferences_fixed = False
         self._application.globalContainerStackChanged.connect(self._onGlobalContainerStackChanged)
         self._onGlobalContainerStackChanged()
 
@@ -55,11 +54,9 @@ class BlackBeltPlugin(Extension):
         self._scene_root.addDecorator(BlackBeltDecorator())
         self._application.getBackend().slicingStarted.connect(self._onSlicingStarted)
 
-    def _onGlobalContainerStackChanged(self):
-        if not self._preferences_fixed:
-            # This is run only once, but is delayed from __init__ because it does not work otherwise
-            self._fixPreferences()
+        self._application.engineCreatedSignal.connect(self._fixPreferences)
 
+    def _onGlobalContainerStackChanged(self):
         if self._global_container_stack:
             self._global_container_stack.propertyChanged.disconnect(self._onSettingValueChanged)
         self._global_container_stack = self._application.getGlobalContainerStack()
@@ -109,8 +106,6 @@ class BlackBeltPlugin(Extension):
             if key not in expanded_settings:
                 expanded_settings += ";%s" % key
         preferences.setValue("cura/categories_expanded", expanded_settings)
-
-        self._preferences_fixed = True
 
 ## Decorator for easy access to gantry angle and transform matrix.
 class BlackBeltDecorator(SceneNodeDecorator):

@@ -26,9 +26,6 @@ class BlackBeltPlugin(Extension):
         super().__init__()
         plugin_path = os.path.dirname(os.path.abspath(__file__))
 
-        self.addMenuItem(i18n_catalog.i18n("Skew selected model(s)"), self.skewForBlackBelt)
-        self.addMenuItem(i18n_catalog.i18n("Unskew selected model(s)"), self.unskewForBlackBelt)
-
         self._application = Application.getInstance()
 
         splash_screen = self._application._splash
@@ -77,7 +74,7 @@ class BlackBeltPlugin(Extension):
     def _onSlicingStarted(self):
         gantry_angle = self._global_container_stack.getProperty("blackbelt_gantry_angle", "value")
         if not gantry_angle:
-            gantry_angle = 90
+            gantry_angle = 0
         self._scene_root.callDecoration("setGantryAngle", math.radians(float(gantry_angle)))
 
     def _onSettingValueChanged(self, key, property_name):
@@ -115,67 +112,7 @@ class BlackBeltPlugin(Extension):
 
         self._preferences_fixed = True
 
-
-    ##  Skews all selected objects for BlackBelt printing
-    def skewForBlackBelt(self):
-        selected_nodes = Selection.getAllSelectedObjects()
-        if not selected_nodes:
-            Message(i18n_catalog.i18nc("@info:status", "No model(s) selected to skew.")).show()
-            return
-
-        # Apply shear transformation
-        transform_matrix = self.makeTransformMatrix()
-        if transform_matrix == Matrix():
-            Message(i18n_catalog.i18nc("@info:status", "Cannot skew model(s). Gantry angle is not set.")).show()
-            return
-        self.applyTransformToNodes(selected_nodes, transform_matrix)
-
-        # Move skewed objects to the right of the buildvolume
-
-        # Glorious hack: BlackBelt has no disallowed areas
-        # This makes sure the object does not conflict with a tiny "brim" around the buildvolume (which should be 0-width but isn't)
-        self._application.getBuildVolume().setDisallowedAreas([])
-
-        build_volume_front = self._application.getBuildVolume().getBoundingBox().front
-        for node in selected_nodes:
-            node_front = node.getBoundingBox().front
-            node.translate(Vector(0, 0, build_volume_front - node_front), SceneNode.TransformSpace.World)
-
-    ##  Undos the skew for BalckBelt printing for all selected objects
-    def unskewForBlackBelt(self):
-        selected_nodes = Selection.getAllSelectedObjects()
-        if not selected_nodes:
-            Message(i18n_catalog.i18nc("@info:status", "No model(s) selected to unskew.")).show()
-            return
-
-        # Apply inverse of shear transformation (instead of doing a proper undo)
-        transform_matrix = self.makeTransformMatrix()
-        if transform_matrix == Matrix():
-            Message(i18n_catalog.i18nc("@info:status", "Cannot unskew model(s). Gantry angle is not set.")).show()
-            return
-        self.applyTransformToNodes(selected_nodes, transform_matrix.getInverse())
-
-    @deprecated("Moved to BlackBeltDecorator", "phase 2")
-    def makeTransformMatrix(self):
-        gantry_angle = self._global_container_stack.getProperty("blackbelt_gantry_angle", "value")
-        if not gantry_angle:
-            return Matrix()
-        gantry_angle = math.radians(float(gantry_angle))
-
-        matrix_data = numpy.identity(4)
-        matrix_data[2, 2] = 1/math.sin(gantry_angle)  # scale Z
-        matrix_data[1, 2] = -1/math.tan(gantry_angle) # shear ZY
-        matrix = Matrix(matrix_data)
-        matrix.rotateByAxis(-math.radians(90), Vector(1,0,0))
-        matrix.rotateByAxis(-math.radians(180), Vector(0,1,0))
-        return matrix
-
-    def applyTransformToNodes(self, nodes, transform):
-        for node in nodes:
-            matrix = node.getLocalTransformation().preMultiply(transform)
-            node.setTransformation(matrix)
-
-## Simple decorator to indicate a scene node holds layer data.
+## Decorator for easy access to gantry angle and transform matrix.
 class BlackBeltDecorator(SceneNodeDecorator):
     def __init__(self):
         super().__init__()
@@ -184,6 +121,10 @@ class BlackBeltDecorator(SceneNodeDecorator):
 
     def setGantryAngle(self, gantry_angle):
         self._gantry_angle = gantry_angle
+
+        if gantry_angle == 0:
+            self._transform_matrix = Matrix()
+            return
 
         matrix_data = numpy.identity(4)
         matrix_data[2, 2] = 1/math.sin(gantry_angle)  # scale Z

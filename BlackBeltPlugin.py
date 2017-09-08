@@ -75,10 +75,10 @@ class BlackBeltPlugin(Extension):
                 definition_container._definitions.insert(0, definition_container._definitions.pop(len(definition_container._definitions) -1))
 
     def _onSlicingStarted(self):
-        transform_matrix = self.makeTransformMatrix()
-        if not transform_matrix:
-            transform_matrix = Matrix()
-        self._scene_root.callDecoration("setTransformMatrix", transform_matrix)
+        gantry_angle = self._global_container_stack.getProperty("blackbelt_gantry_angle", "value")
+        if not gantry_angle:
+            gantry_angle = 90
+        self._scene_root.callDecoration("setGantryAngle", math.radians(float(gantry_angle)))
 
     def _onSettingValueChanged(self, key, property_name):
         if key in ["blackbelt_gantry_angle"] and property_name == "value":
@@ -155,6 +155,7 @@ class BlackBeltPlugin(Extension):
             return
         self.applyTransformToNodes(selected_nodes, transform_matrix.getInverse())
 
+    @deprecated("Moved to BlackBeltDecorator", "phase 2")
     def makeTransformMatrix(self):
         gantry_angle = self._global_container_stack.getProperty("blackbelt_gantry_angle", "value")
         if not gantry_angle:
@@ -164,7 +165,10 @@ class BlackBeltPlugin(Extension):
         matrix_data = numpy.identity(4)
         matrix_data[2, 2] = 1/math.sin(gantry_angle)  # scale Z
         matrix_data[1, 2] = -1/math.tan(gantry_angle) # shear ZY
-        return Matrix(matrix_data)
+        matrix = Matrix(matrix_data)
+        matrix.rotateByAxis(-math.radians(90), Vector(1,0,0))
+        matrix.rotateByAxis(-math.radians(180), Vector(0,1,0))
+        return matrix
 
     def applyTransformToNodes(self, nodes, transform):
         for node in nodes:
@@ -175,10 +179,23 @@ class BlackBeltPlugin(Extension):
 class BlackBeltDecorator(SceneNodeDecorator):
     def __init__(self):
         super().__init__()
+        self._gantry_angle = math.radians(90)
         self._transform_matrix = Matrix()
+
+    def setGantryAngle(self, gantry_angle):
+        self._gantry_angle = gantry_angle
+
+        matrix_data = numpy.identity(4)
+        matrix_data[2, 2] = 1/math.sin(gantry_angle)  # scale Z
+        matrix_data[1, 2] = -1/math.tan(gantry_angle) # shear ZY
+        matrix = Matrix(matrix_data)
+        matrix.rotateByAxis(-math.radians(90), Vector(1,0,0))
+        matrix.rotateByAxis(-math.radians(180), Vector(0,1,0))
+
+        self._transform_matrix = matrix
+
+    def getGantryAngle(self):
+        return self._gantry_angle
 
     def getTransformMatrix(self):
         return self._transform_matrix
-
-    def setTransformMatrix(self, transform_matrix):
-        self._transform_matrix = transform_matrix

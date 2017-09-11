@@ -216,6 +216,10 @@ class ProcessSlicedLayersJob(Job):
         if not settings.getProperty("machine_center_is_zero", "value"):
             new_node.setPosition(Vector(-settings.getProperty("machine_width", "value") / 2, 0.0, settings.getProperty("machine_depth", "value") / 2))
 
+        transform = self._scene.getRoot().callDecoration("getTransformMatrix")
+        transform_matrix = new_node.getLocalTransformation().preMultiply(transform.getInverse())
+        new_node.setTransformation(transform_matrix)
+
         if self._progress:
             self._progress.setProgress(100)
 

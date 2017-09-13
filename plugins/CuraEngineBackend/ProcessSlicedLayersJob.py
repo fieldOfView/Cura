@@ -16,6 +16,7 @@ from UM.i18n import i18nCatalog
 from UM.Logger import Logger
 
 from UM.Math.Vector import Vector
+from UM.Math.Matrix import Matrix
 
 from cura.Settings.ExtruderManager import ExtruderManager
 from cura import LayerDataBuilder
@@ -217,9 +218,10 @@ class ProcessSlicedLayersJob(Job):
             new_node.setPosition(Vector(-settings.getProperty("machine_width", "value") / 2, 0.0, settings.getProperty("machine_depth", "value") / 2))
 
         transform = self._scene.getRoot().callDecoration("getTransformMatrix")
-        if transform:
+        if transform and transform != Matrix():
             transform_matrix = new_node.getLocalTransformation().preMultiply(transform.getInverse())
             new_node.setTransformation(transform_matrix)
+            new_node.translate(Vector(0, 0, self._scene.getRoot().callDecoration("getSceneFront")), SceneNode.TransformSpace.World)
 
         if self._progress:
             self._progress.setProgress(100)

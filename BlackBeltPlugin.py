@@ -30,7 +30,7 @@ class BlackBeltPlugin(Extension):
 
         splash_screen = self._application._splash
         splash_image = QPixmap(os.path.join(plugin_path, "images", "splash.png"))
-        splash_screen.setPixmap(splash_image.scaled(splash_image.size() * splash_screen._scale))
+        splash_screen.setPixmap(splash_image)
         splash_screen.repaint()
 
         self._global_container_stack = None

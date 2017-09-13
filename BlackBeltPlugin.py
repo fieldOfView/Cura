@@ -69,10 +69,7 @@ class BlackBeltPlugin(Extension):
                 definition_container._definitions.insert(0, definition_container._definitions.pop(len(definition_container._definitions) -1))
 
     def _onSlicingStarted(self):
-        gantry_angle = self._global_container_stack.getProperty("blackbelt_gantry_angle", "value")
-        if not gantry_angle:
-            gantry_angle = 0
-        self._scene_root.callDecoration("setGantryAngle", math.radians(float(gantry_angle)))
+        self._scene_root.callDecoration("calculateTransformData")
 
     def _onSettingValueChanged(self, key, property_name):
         if key in ["blackbelt_gantry_angle"] and property_name == "value":
@@ -106,27 +103,38 @@ class BlackBeltPlugin(Extension):
             if key not in expanded_settings:
                 expanded_settings += ";%s" % key
         preferences.setValue("cura/categories_expanded", expanded_settings)
+        self._application.expandedCategoriesChanged.emit()
 
 ## Decorator for easy access to gantry angle and transform matrix.
 class BlackBeltDecorator(SceneNodeDecorator):
     def __init__(self):
         super().__init__()
-        self._gantry_angle = math.radians(90)
+        self._gantry_angle = 0
         self._transform_matrix = Matrix()
+        self._scene_front = 0
 
-    def setGantryAngle(self, gantry_angle):
-        self._gantry_angle = gantry_angle
+    def calculateTransformData(self):
+        global_stack = Application.getInstance().getGlobalContainerStack()
+        machine_depth = global_stack.getProperty("machine_depth", "value")
+        self._scene_front = Application.getInstance()._scene_bounding_box.front - (machine_depth / 2)
 
-        if gantry_angle == 0:
+        gantry_angle = global_stack.getProperty("blackbelt_gantry_angle", "value")
+        if not gantry_angle:
+            self._gantry_angle = 0
             self._transform_matrix = Matrix()
             return
+        self._gantry_angle = math.radians(float(gantry_angle))
 
         matrix_data = numpy.identity(4)
-        matrix_data[2, 2] = 1/math.sin(gantry_angle)  # scale Z
-        matrix_data[1, 2] = -1/math.tan(gantry_angle) # shear ZY
+        matrix_data[2, 2] = 1/math.sin(self._gantry_angle)  # scale Z
+        matrix_data[1, 2] = -1/math.tan(self._gantry_angle) # shear ZY
         matrix = Matrix(matrix_data)
+
+        # use front buildvolume face instead of bottom face
         matrix.rotateByAxis(-math.radians(90), Vector(1,0,0))
         matrix.rotateByAxis(-math.radians(180), Vector(0,1,0))
+        # bottom face has origin at the center, front face has origin at one side
+        matrix.translate(Vector(0, machine_depth / 2, 0))
 
         self._transform_matrix = matrix
 
@@ -135,3 +143,6 @@ class BlackBeltDecorator(SceneNodeDecorator):
 
     def getTransformMatrix(self):
         return self._transform_matrix
+
+    def getSceneFront(self):
+        return self._scene_front

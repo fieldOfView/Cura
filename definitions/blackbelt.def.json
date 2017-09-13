@@ -60,11 +60,11 @@
             "default_value": 340
         },
         "machine_height": {
-            "default_value": 99999
-        },
-        "machine_depth": {
             "default_value": 340,
             "value": "485 * math.sin(math.radians(float(blackbelt_gantry_angle)))"
+        },
+        "machine_depth": {
+            "default_value": 480
         },
         "machine_nozzle_size": {
             "default_value": 0.4,

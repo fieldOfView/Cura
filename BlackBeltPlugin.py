@@ -128,6 +128,13 @@ class BlackBeltDecorator(SceneNodeDecorator):
         scene_bounding_box = Application.getInstance()._scene_bounding_box
         self._scene_front_offset = scene_bounding_box.center.z + machine_depth * (1 - math.cos(self._gantry_angle) / 2) - scene_bounding_box.depth / 2
 
+        matrix = Matrix()
+        matrix.setColumn(1, [0, 1 / math.tan(self._gantry_angle), 1, (machine_depth / 2) * (2 - math.cos(self._gantry_angle))])
+        matrix.setColumn(2, [0, - 1 / math.sin(self._gantry_angle), 0, machine_depth / 2])
+        self._transform_matrix = matrix
+
+        # The above magic transform matrix is composed as follows:
+        """
         matrix_data = numpy.identity(4)
         matrix_data[2, 2] = 1/math.sin(self._gantry_angle)  # scale Z
         matrix_data[1, 2] = -1/math.tan(self._gantry_angle) # shear ZY
@@ -149,6 +156,7 @@ class BlackBeltDecorator(SceneNodeDecorator):
         matrix.translate(Vector(0, 0, machine_depth))
 
         self._transform_matrix = matrix
+        """
 
     def getGantryAngle(self):
         return self._gantry_angle

@@ -221,7 +221,7 @@ class ProcessSlicedLayersJob(Job):
         if transform and transform != Matrix():
             transform_matrix = new_node.getLocalTransformation().preMultiply(transform.getInverse())
             new_node.setTransformation(transform_matrix)
-            new_node.translate(Vector(0, 0, self._scene.getRoot().callDecoration("getSceneFront")), SceneNode.TransformSpace.World)
+            new_node.translate(Vector(0, 0, self._scene.getRoot().callDecoration("getSceneFrontOffset")), SceneNode.TransformSpace.World)
 
         if self._progress:
             self._progress.setProgress(100)

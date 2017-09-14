@@ -44,7 +44,7 @@ Item
             {
                 id: resolutionLabel
                 anchors.top: resolutionSlider.top
-                anchors.topMargin: UM.Theme.getSize("default_margin").height / 4
+                anchors.topMargin: UM.Theme.getSize("default_margin").height * 1.2
                 anchors.left: parent.left
                 anchors.leftMargin: UM.Theme.getSize("sidebar_margin").width
                 width: UM.Theme.getSize("sidebar").width * .45 - UM.Theme.getSize("sidebar_margin").width
@@ -57,9 +57,10 @@ Item
             Text
             {
                 id: speedLabel
-                anchors.bottom: resolutionSlider.bottom
+                anchors.top: resolutionLabel.bottom
                 anchors.left: parent.left
                 anchors.leftMargin: UM.Theme.getSize("sidebar_margin").width
+                anchors.topMargin: UM.Theme.getSize("default_margin").height * 1.5
 
                 text: catalog.i18nc("@label", "Print Speed")
                 font: UM.Theme.getFont("default")
@@ -94,7 +95,7 @@ Item
             {
                 id: resolutionSlider
                 anchors.top: parent.top
-                anchors.topMargin: UM.Theme.getSize("default_margin").height / 2
+                
                 anchors.left: infillCellRight.left
                 anchors.right: infillCellRight.right
                 width: UM.Theme.getSize("sidebar").width * .55
@@ -142,6 +143,7 @@ Item
                         }
                     }
                     resolutionSlider.currentQualityIndex = undefined;
+                    backgroundBarUpdateTimer.start();
                 }
 
                 function updateBar()
@@ -245,9 +247,10 @@ Item
                     anchors.fill: parent
 
                     Timer {
-                        interval: 16
-                        running: true
-                        repeat: true
+                        id: backgroundBarUpdateTimer
+                        interval: 10
+                        running: false
+                        repeat: false
                         onTriggered: backgroundBar.requestPaint()
                     }
 
@@ -766,6 +769,8 @@ Item
                 visible: adhesionCheckBox.visible
                 anchors.left: parent.left
                 anchors.leftMargin: UM.Theme.getSize("sidebar_margin").width
+                anchors.right: infillCellLeft.right
+                anchors.rightMargin: UM.Theme.getSize("sidebar_margin").width
                 anchors.verticalCenter: adhesionCheckBox.verticalCenter
                 text: catalog.i18nc("@label", "Build Plate Adhesion");
                 font: UM.Theme.getFont("default");

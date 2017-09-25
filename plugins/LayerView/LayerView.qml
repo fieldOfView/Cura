@@ -30,11 +30,15 @@ Item
     }
 
     property var buttonTarget: {
-        var force_binding = parent.y; // ensure this gets reevaluated when the panel moves
-        return base.mapFromItem(parent.parent, parent.buttonTarget.x, parent.buttonTarget.y);
+        if(parent != null)
+        {
+            var force_binding = parent.y; // ensure this gets reevaluated when the panel moves
+            return base.mapFromItem(parent.parent, parent.buttonTarget.x, parent.buttonTarget.y)
+        }
+        return Qt.point(0,0)
     }
 
-    visible: !parent.parent.monitoringPrint
+    visible: parent != null ? !parent.parent.monitoringPrint: true
 
     UM.PointingRectangle {
         id: layerViewMenu
@@ -338,7 +342,7 @@ Item
         {
             id: slider
             width: handleSize
-            height: parent.height - 2*UM.Theme.getSize("slider_layerview_margin").height
+            height: UM.Theme.getSize("layerview_menu_size").height
             anchors.top: parent.bottom
             anchors.topMargin: UM.Theme.getSize("slider_layerview_margin").height
             anchors.right: layerViewMenu.right

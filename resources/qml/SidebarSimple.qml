@@ -27,6 +27,7 @@ Item
 
     ScrollView
     {
+        visible: Cura.MachineManager.activeMachineName != "" // If no printers added then the view is invisible
         anchors.fill: parent
         style: UM.Theme.styles.scrollview
         flickableItem.flickableDirection: Flickable.VerticalFlick
@@ -40,361 +41,286 @@ Item
             //
             // Quality profile
             //
-            Text
-            {
-                id: resolutionLabel
-                anchors.top: resolutionSlider.top
-                anchors.left: parent.left
-                anchors.leftMargin: UM.Theme.getSize("sidebar_margin").width
-
-                text: catalog.i18nc("@label", "Layer Height")
-                font: UM.Theme.getFont("default")
-                color: UM.Theme.getColor("text")
-            }
-
-            Text
-            {
-                id: speedLabel
-                anchors.bottom: resolutionSlider.bottom
-                anchors.left: parent.left
-                anchors.leftMargin: UM.Theme.getSize("sidebar_margin").width
-
-                text: catalog.i18nc("@label", "Print Speed")
-                font: UM.Theme.getFont("default")
-                color: UM.Theme.getColor("text")
-            }
-
-            Text
-            {
-                id: speedLabelSlower
-                anchors.bottom: speedLabel.bottom
-                anchors.left: resolutionSlider.left
-
-                text: catalog.i18nc("@label", "Slower")
-                font: UM.Theme.getFont("default")
-                color: UM.Theme.getColor("text")
-                horizontalAlignment: Text.AlignLeft
-            }
-
-            Text
-            {
-                id: speedLabelFaster
-                anchors.bottom: speedLabel.bottom
-                anchors.right: resolutionSlider.right
-
-                text: catalog.i18nc("@label", "Faster")
-                font: UM.Theme.getFont("default")
-                color: UM.Theme.getColor("text")
-                horizontalAlignment: Text.AlignRight
-            }
-
             Item
             {
-                id: resolutionSlider
-                anchors.top: parent.top
-                anchors.left: infillCellRight.left
-                anchors.right: infillCellRight.right
+                id: qualityRow
 
-                width: UM.Theme.getSize("sidebar").width * .55
-                height: UM.Theme.getSize("quality_slider_bar").height * 25
+                height: UM.Theme.getSize("sidebar_margin").height
+                anchors.topMargin: UM.Theme.getSize("sidebar_margin").height
+                anchors.left: parent.left
+                anchors.leftMargin: UM.Theme.getSize("sidebar_margin").width
+                anchors.right: parent.right
 
-                property var model: Cura.ProfilesModel
-
-                Connections
+                Timer
                 {
-                    target: Cura.ProfilesModel
-                    onItemsChanged:
-                    {
-                        resolutionSlider.updateCurrentQualityIndex();
-                        resolutionSlider.updateBar();
-                    }
+                    id: qualitySliderChangeTimer
+                    interval: 50
+                    running: false
+                    repeat: false
+                    onTriggered: Cura.MachineManager.setActiveQuality(Cura.ProfilesModel.getItem(qualitySlider.value).id)
                 }
+
+                Component.onCompleted: qualityModel.update()
 
                 Connections
                 {
                     target: Cura.MachineManager
-                    onActiveQualityChanged:
-                    {
-                        resolutionSlider.updateCurrentQualityIndex();
-                        resolutionSlider.updateBar();
-                    }
+                    onActiveQualityChanged: qualityModel.update()
                 }
 
-                Component.onCompleted:
+                ListModel
                 {
-                    updateCurrentQualityIndex();
-                    updateBar();
-                }
+                    id: qualityModel
 
-                function updateCurrentQualityIndex()
-                {
-                    for (var i = 0; i < resolutionSlider.model.rowCount(); ++i)
-                    {
-                        if (Cura.MachineManager.activeQualityId == resolutionSlider.model.getItem(i).id)
-                        {
-                            if (resolutionSlider.currentQualityIndex != i)
-                            {
-                                resolutionSlider.currentQualityIndex = i;
+                    property var totalTicks: 0
+                    property var availableTotalTicks: 0
+                    property var activeQualityId: 0
+
+                    property var qualitySliderStepWidth: 0
+                    property var qualitySliderAvailableMin : 0
+                    property var qualitySliderAvailableMax : 0
+                    property var qualitySliderMarginRight : 0
+
+                    function update () {
+                        reset()
+
+                        var availableMin = -1
+                        var availableMax = -1
+
+                        for (var i = 0; i <= Cura.ProfilesModel.rowCount(); i++) {
+                            var qualityItem = Cura.ProfilesModel.getItem(i)
+
+                            // Add each quality item to the UI quality model
+                            qualityModel.append(qualityItem)
+
+                            // Set selected value
+                            if (Cura.MachineManager.activeQualityId == qualityItem.id) {
+                                qualityModel.activeQualityId = i
                             }
-                            return;
-                        }
-                    }
-                    resolutionSlider.currentQualityIndex = undefined;
-                    backgroundBarUpdateTimer.start();
-                }
 
-                function updateBar()
-                {
-                    fullRangeMax = Cura.ProfilesModel.rowCount();
+                            // Set min available
+                            if (qualityItem.available && availableMin == -1) {
+                                availableMin = i
+                            }
 
-                    // set avaiableMin
-                    var foundAvaiableMin = false;
-                    for (var i = 0; i < Cura.ProfilesModel.rowCount(); ++i)
-                    {
-                        if (Cura.ProfilesModel.getItem(i).available)
-                        {
-                            avaiableMin = i;
-                            foundAvaiableMin = true;
-                            break;
-                        }
-                    }
-                    if (!foundAvaiableMin)
-                    {
-                        avaiableMin = undefined;
-                    }
-
-                    var foundAvaiableMax = false;
-                    for (var i = Cura.ProfilesModel.rowCount() - 1; i >= 0; --i)
-                    {
-                        if (Cura.ProfilesModel.getItem(i).available)
-                        {
-                            avaiableMax = i;
-                            foundAvaiableMax = true;
-                            break;
-                        }
-                    }
-                    if (!foundAvaiableMax)
-                    {
-                        avaiableMax = undefined;
-                    }
-
-                    currentHover = undefined;
-                    backgroundBar.requestPaint();
-                }
-
-                property var fullRangeMin: 0
-                property var fullRangeMax: model.rowCount()
-
-                property var avaiableMin
-                property var avaiableMax
-                property var currentQualityIndex
-                property var currentHover
-
-                //TODO: get from theme
-                property var barLeftRightMargin: 5
-                property var tickLeftRightMargin: 2
-                property var tickMargin: 15
-                property var tickThickness: 1
-                property var tickWidth: 1
-                property var tickHeight: 5
-                property var tickTextHeight: 8
-                property var totalTickCount: fullRangeMax - fullRangeMin
-                property var selectedCircleDiameter: 10
-
-                property var showQualityText: false
-
-                property var tickStepSize: (width - (barLeftRightMargin + tickLeftRightMargin) * 2) / (totalTickCount > 1 ?  totalTickCount - 1 : 1)
-                property var tickAreaList:
-                {
-                    var area_list = [];
-                    if (avaiableMin != undefined && avaiableMax != undefined)
-                    {
-                        for (var i = avaiableMin; i <= avaiableMax; ++i)
-                        {
-                            var start_x = (barLeftRightMargin + tickLeftRightMargin) + tickStepSize * (i - fullRangeMin);
-                            var diameter = tickStepSize * 0.9;
-                            start_x = start_x + tickWidth / 2 - (diameter / 2);
-                            var end_x = start_x + diameter;
-                            var start_y = height / 2 - diameter / 2;
-                            var end_y = start_y + diameter;
-
-                            var area = {"id": i,
-                                        "start_x": start_x, "end_x": end_x,
-                                        "start_y": start_y, "end_y": end_y,
-                                        };
-                            area_list.push(area);
-                        }
-                    }
-                    return area_list;
-                }
-
-                onCurrentHoverChanged:
-                {
-                    backgroundBar.requestPaint();
-                }
-                onCurrentQualityIndex:
-                {
-                    backgroundBar.requestPaint();
-                }
-
-                // background bar
-                Canvas
-                {
-                    id: backgroundBar
-                    anchors.fill: parent
-
-                    Timer {
-                        id: backgroundBarUpdateTimer
-                        interval: 10
-                        running: false
-                        repeat: false
-                        onTriggered: backgroundBar.requestPaint()
-                    }
-
-                    onPaint:
-                    {
-                        var ctx = getContext("2d");
-                        ctx.reset();
-                        ctx.fillStyle = UM.Theme.getColor("quality_slider_unavailable");
-
-                        const bar_left_right_margin = resolutionSlider.barLeftRightMargin;
-                        const tick_left_right_margin = resolutionSlider.tickLeftRightMargin;
-                        const tick_margin = resolutionSlider.tickMargin;
-                        const bar_thickness = resolutionSlider.tickThickness;
-                        const tick_width = resolutionSlider.tickWidth;
-                        const tick_height = resolutionSlider.tickHeight;
-                        const tick_text_height = resolutionSlider.tickTextHeight;
-                        const selected_circle_diameter = resolutionSlider.selectedCircleDiameter;
-
-                        // draw unavailable bar
-                        const bar_top = parent.height / 2 - bar_thickness / 2;
-                        ctx.fillRect(bar_left_right_margin, bar_top, width - bar_left_right_margin * 2, bar_thickness);
-
-                        // draw unavailable ticks
-                        var total_tick_count = resolutionSlider.totalTickCount;
-                        const step_size = resolutionSlider.tickStepSize;
-                        var current_start_x = bar_left_right_margin + tick_left_right_margin;
-
-                        const tick_top = parent.height / 2 - tick_height / 2;
-
-                        for (var i = 0; i < total_tick_count; ++i)
-                        {
-                            ctx.fillRect(current_start_x, tick_top, tick_width, tick_height);
-                            current_start_x += step_size;
-                        }
-
-                        // draw available bar and ticks
-                        if (resolutionSlider.avaiableMin != undefined && resolutionSlider.avaiableMax != undefined)
-                        {
-                            current_start_x = (bar_left_right_margin + tick_left_right_margin) + step_size * (resolutionSlider.avaiableMin - resolutionSlider.fullRangeMin);
-                            ctx.fillStyle = UM.Theme.getColor("quality_slider_available");
-                            total_tick_count = resolutionSlider.avaiableMax - resolutionSlider.avaiableMin + 1;
-
-                            const available_bar_width = step_size * (total_tick_count - 1);
-                            ctx.fillRect(current_start_x, bar_top, available_bar_width, bar_thickness);
-
-                            for (var i = 0; i < total_tick_count; ++i)
-                            {
-                                ctx.fillRect(current_start_x, tick_top, tick_width, tick_height);
-                                current_start_x += step_size;
+                            // Set max available
+                            if (qualityItem.available) {
+                                availableMax = i
                             }
                         }
 
-                        // print the selected circle
-                        if (resolutionSlider.currentQualityIndex != undefined)
-                        {
-                            var circle_start_x = (bar_left_right_margin + tick_left_right_margin) + step_size * (resolutionSlider.currentQualityIndex - resolutionSlider.fullRangeMin);
-                            circle_start_x = circle_start_x + tick_width / 2 - selected_circle_diameter / 2;
-                            var circle_start_y = height / 2 - selected_circle_diameter / 2;
-                            ctx.fillStyle = UM.Theme.getColor("quality_slider_handle");
-                            ctx.beginPath();
-                            ctx.ellipse(circle_start_x, circle_start_y, selected_circle_diameter, selected_circle_diameter);
-                            ctx.fill();
-                            ctx.closePath();
+                        // Set total available ticks for active slider part
+                        if (availableMin != -1) {
+                            qualityModel.availableTotalTicks = availableMax - availableMin
                         }
 
-                        // print the hovered circle
-                        if (resolutionSlider.currentHover != undefined && resolutionSlider.currentHover != resolutionSlider.currentQualityIndex)
-                        {
-                            var circle_start_x = (bar_left_right_margin + tick_left_right_margin) + step_size * (resolutionSlider.currentHover - resolutionSlider.fullRangeMin);
-                            circle_start_x = circle_start_x + tick_width / 2 - selected_circle_diameter / 2;
-                            var circle_start_y = height / 2 - selected_circle_diameter / 2;
-                            ctx.fillStyle = UM.Theme.getColor("quality_slider_handle_hover");
-                            ctx.beginPath();
-                            ctx.ellipse(circle_start_x, circle_start_y, selected_circle_diameter, selected_circle_diameter);
-                            ctx.fill();
-                            ctx.closePath();
-                        }
+                        // Calculate slider values
+                        calculateSliderStepWidth(qualityModel.totalTicks)
+                        calculateSliderMargins(availableMin, availableMax, qualityModel.totalTicks)
 
-                        // print layer height texts
-                        total_tick_count = resolutionSlider.totalTickCount;
-                        const step_size = resolutionSlider.tickStepSize;
-                        current_start_x = bar_left_right_margin + tick_left_right_margin;
-                        for (var i = 0; i < total_tick_count; ++i)
-                        {
-                            const text_top = parent.height / 2 - tick_height - tick_text_height;
-                            ctx.fillStyle = UM.Theme.getColor("quality_slider_text");
+                        qualityModel.qualitySliderAvailableMin = availableMin
+                        qualityModel.qualitySliderAvailableMax = availableMax
+                    }
 
-                            ctx.font = "12px sans-serif";
-                            const string_length = resolutionSlider.model.getItem(i).layer_height_without_unit.length;
-                            const offset = string_length / 2 * 4;
+                    function calculateSliderStepWidth (totalTicks) {
+                        qualityModel.qualitySliderStepWidth = totalTicks != 0 ? (base.width * 0.55) / (totalTicks) : 0
+                    }
 
-                            var start_x = current_start_x - offset;
-                            if (i == 0)
-                            {
-                                start_x = 0;
-                            }
-                            else if (i == total_tick_count - 1)
-                            {
-                                start_x = current_start_x - offset * 2.5;
-                            }
-
-                            ctx.fillText(resolutionSlider.model.getItem(i).layer_height_without_unit, start_x, text_top);
-                            current_start_x += step_size;
+                    function calculateSliderMargins (availableMin, availableMax, totalTicks) {
+                        if (availableMin == -1 || (availableMin == 0 && availableMax == 0)) {
+                            qualityModel.qualitySliderMarginRight = base.width * 0.55
+                        } else if (availableMin == availableMax) {
+                            qualityModel.qualitySliderMarginRight = (totalTicks - availableMin) * qualitySliderStepWidth
+                        } else {
+                            qualityModel.qualitySliderMarginRight = (totalTicks - availableMax) * qualitySliderStepWidth
                         }
                     }
 
-                    MouseArea
+                    function reset () {
+                        qualityModel.clear()
+                        qualityModel.totalTicks = Cura.ProfilesModel.rowCount() - 1 // minus one, because slider starts from 0
+                        qualityModel.availableTotalTicks = -1
+                    }
+                }
+
+                Text
+                {
+                    id: qualityRowTitle
+                    text: catalog.i18nc("@label", "Layer Height")
+                    font: UM.Theme.getFont("default")
+                    color: UM.Theme.getColor("text")
+                }
+
+                // Show titles for the each quality slider ticks
+                Item
+                {
+                    y: -5;
+                    anchors.left: speedSlider.left
+                    Repeater
                     {
-                        anchors.fill: parent
-                        hoverEnabled: true
+                        model: qualityModel
 
-                        onClicked:
+                        Text
                         {
-                            for (var i = 0; i < resolutionSlider.tickAreaList.length; ++i)
+                            anchors.verticalCenter: parent.verticalCenter
+                            anchors.top: parent.top
+                            anchors.topMargin: UM.Theme.getSize("sidebar_margin").height / 2
+                            color: (Cura.MachineManager.activeMachine != null && Cura.ProfilesModel.getItem(index).available) ? UM.Theme.getColor("quality_slider_available") : UM.Theme.getColor("quality_slider_unavailable")
+                            text:
                             {
-                                var area = resolutionSlider.tickAreaList[i];
-                                if (area.start_x <= mouseX && mouseX <= area.end_x && area.start_y <= mouseY && mouseY <= area.end_y)
-                                {
-                                    resolutionSlider.currentHover = undefined;
-                                    resolutionSlider.currentQualityIndex = area.id;
+                                var result = ""
+                                if(Cura.MachineManager.activeMachine != null){
 
-                                    Cura.MachineManager.setActiveQuality(resolutionSlider.model.getItem(resolutionSlider.currentQualityIndex).id);
-                                    return;
+                                    var result = Cura.ProfilesModel.getItem(index).layer_height_without_unit
+
+                                    if(result == undefined)
+                                        result = ""
+                                }
+                                return result
+                            }
+
+                            x: {
+                                // Make sure the text aligns correctly with each tick
+                                if (index == 0) {
+                                    return (base.width * 0.55 / qualityModel.totalTicks) * index
+                                } else if (index == qualityModel.totalTicks) {
+                                    return (base.width * 0.55 / qualityModel.totalTicks) * index - width
+                                } else {
+                                    return (base.width * 0.55 / qualityModel.totalTicks) * index - (width / 2)
                                 }
                             }
-                            resolutionSlider.currentHover = undefined;
-                        }
-                        onPositionChanged:
-                        {
-                            for (var i = 0; i < resolutionSlider.tickAreaList.length; ++i)
-                            {
-                                var area = resolutionSlider.tickAreaList[i];
-                                if (area.start_x <= mouseX && mouseX <= area.end_x && area.start_y <= mouseY && mouseY <= area.end_y)
-                                {
-                                    resolutionSlider.currentHover = area.id;
-                                    return;
-                                }
-                            }
-                            resolutionSlider.currentHover = undefined;
-                        }
-                        onExited:
-                        {
-                            resolutionSlider.currentHover = undefined;
                         }
                     }
+                }
+
+                //Print speed slider
+                Item
+                {
+                    id: speedSlider
+                    width: base.width * 0.55
+                    height: UM.Theme.getSize("sidebar_margin").height
+                    anchors.right: parent.right
+                    anchors.top: parent.top
+                    anchors.topMargin: UM.Theme.getSize("sidebar_margin").height
+
+                    // Draw Unavailable line
+                    Rectangle
+                    {
+                        id: groovechildrect
+                        width: base.width * 0.55
+                        height: 2
+                        color: UM.Theme.getColor("quality_slider_unavailable")
+                        anchors.verticalCenter: qualitySlider.verticalCenter
+                        x: 0
+                    }
+
+                    // Draw ticks
+                    Repeater
+                    {
+                        id: qualityRepeater
+                        model: qualityModel
+
+                        Rectangle
+                        {
+                            anchors.verticalCenter: parent.verticalCenter
+                            color: Cura.ProfilesModel.getItem(index).available ? UM.Theme.getColor("quality_slider_available") : UM.Theme.getColor("quality_slider_unavailable")
+                            width: 1
+                            height: 6
+                            y: 0
+                            x: qualityModel.qualitySliderStepWidth * index
+                        }
+                    }
+
+
+                    Slider
+                    {
+                        id: qualitySlider
+                        height: UM.Theme.getSize("sidebar_margin").height
+                        anchors.bottom: speedSlider.bottom
+                        enabled: qualityModel.availableTotalTicks > 0
+                        updateValueWhileDragging : false
+
+                        minimumValue: qualityModel.qualitySliderAvailableMin
+                        maximumValue: qualityModel.qualitySliderAvailableMax
+                        stepSize: 1
+
+                        value: qualityModel.activeQualityId
+
+                        width: qualityModel.qualitySliderStepWidth * qualityModel.availableTotalTicks
+
+                        anchors.right: parent.right
+                        anchors.rightMargin: qualityModel.qualitySliderMarginRight
+
+                        style: SliderStyle
+                        {
+                            //Draw Available line
+                            groove: Rectangle {
+                                implicitHeight: 2
+                                color: UM.Theme.getColor("quality_slider_available")
+                                radius: 1
+                            }
+                            handle: Item {
+                                Rectangle {
+                                    id: qualityhandleButton
+                                    anchors.centerIn: parent
+                                    color: control.enabled ? UM.Theme.getColor("quality_slider_available") : UM.Theme.getColor("quality_slider_unavailable")
+                                    implicitWidth: 10
+                                    implicitHeight: 10
+                                    radius: 10
+                                }
+                            }
+                        }
+
+                        onValueChanged: {
+                            if(Cura.MachineManager.activeMachine != null)
+                            {
+                                //Prevent updating during view initializing. Trigger only if the value changed by user
+                                if(qualitySlider.value != qualityModel.activeQualityId)
+                                {
+                                    //start updating with short delay
+                                    qualitySliderChangeTimer.start();
+                                }
+                            }
+                        }
+                    }
+                }
+
+                Text
+                {
+                    id: speedLabel
+                    anchors.top: speedSlider.bottom
+
+                    anchors.left: parent.left
+
+                    text: catalog.i18nc("@label", "Print Speed")
+                    font: UM.Theme.getFont("default")
+                    color: UM.Theme.getColor("text")
+                }
+
+                Text
+                {
+                    anchors.bottom: speedLabel.bottom
+                    anchors.left: speedSlider.left
+
+                    text: catalog.i18nc("@label", "Slower")
+                    font: UM.Theme.getFont("default")
+                    color: UM.Theme.getColor("text")
+                    horizontalAlignment: Text.AlignLeft
+                }
+
+                Text
+                {
+                    anchors.bottom: speedLabel.bottom
+                    anchors.right: speedSlider.right
+
+                    text: catalog.i18nc("@label", "Faster")
+                    font: UM.Theme.getFont("default")
+                    color: UM.Theme.getColor("text")
+                    horizontalAlignment: Text.AlignRight
                 }
             }
+
+
 
             //
             // Infill
@@ -402,234 +328,276 @@ Item
             Item
             {
                 id: infillCellLeft
-                anchors.top: speedLabel.top
-                anchors.topMargin: UM.Theme.getSize("sidebar_margin").height * 1.2
+
+                anchors.top: qualityRow.bottom
+                anchors.topMargin: UM.Theme.getSize("sidebar_margin").height * 2
                 anchors.left: parent.left
+
                 width: UM.Theme.getSize("sidebar").width * .45 - UM.Theme.getSize("sidebar_margin").width
-                height: childrenRect.height
 
                 Text
                 {
                     id: infillLabel
-                    //: Infill selection label
-                    text: catalog.i18nc("@label", "Infill");
-                    font: UM.Theme.getFont("default");
-                    color: UM.Theme.getColor("text");
+                    text: catalog.i18nc("@label", "Infill")
+                    font: UM.Theme.getFont("default")
+                    color: UM.Theme.getColor("text")
+
                     anchors.top: parent.top
-                    anchors.topMargin: UM.Theme.getSize("sidebar_margin").height
+                    anchors.topMargin: UM.Theme.getSize("sidebar_margin").height * 1.7
                     anchors.left: parent.left
                     anchors.leftMargin: UM.Theme.getSize("sidebar_margin").width
                 }
             }
 
-            Row
+
+
+            Item
             {
                 id: infillCellRight
 
-                height: childrenRect.height;
+                height: infillSlider.height + enableGradualInfillCheckBox.height + (UM.Theme.getSize("sidebar_margin").height * 2)
                 width: UM.Theme.getSize("sidebar").width * .55
-
-                spacing: UM.Theme.getSize("sidebar_margin").width
 
                 anchors.left: infillCellLeft.right
                 anchors.top: infillCellLeft.top
                 anchors.topMargin: UM.Theme.getSize("sidebar_margin").height
 
-                Repeater
+                Text {
+                    id: selectedInfillRateText
+
+                    //anchors.top: parent.top
+                    anchors.left: infillSlider.left
+                    anchors.leftMargin: (infillSlider.value / infillSlider.stepSize) * (infillSlider.width / (infillSlider.maximumValue / infillSlider.stepSize)) - 10
+                    anchors.right: parent.right
+
+                    text: infillSlider.value + "%"
+                    horizontalAlignment: Text.AlignLeft
+
+                    color: infillSlider.enabled ? UM.Theme.getColor("quality_slider_available") : UM.Theme.getColor("quality_slider_unavailable")
+                }
+
+                Slider
                 {
-                    id: infillListView
-                    property int activeIndex:
-                    {
-                        for(var i = 0; i < infillModel.count; ++i)
-                        {
-                            var density = parseInt(infillDensity.properties.value);
-                            var steps = parseInt(infillSteps.properties.value);
-                            if(density > infillModel.get(i).percentageMin && density <= infillModel.get(i).percentageMax && steps > infillModel.get(i).stepsMin && steps <= infillModel.get(i).stepsMax)
-                            {
-                                return i;
-                            }
-                        }
+                    id: infillSlider
 
-                        return -1;
+                    anchors.top: selectedInfillRateText.bottom
+                    anchors.left: parent.left
+                    anchors.right: infillIcon.left
+                    anchors.rightMargin: UM.Theme.getSize("sidebar_margin").width
+
+                    height: UM.Theme.getSize("sidebar_margin").height
+                    width: infillCellRight.width - UM.Theme.getSize("sidebar_margin").width - style.handleWidth
+
+                    minimumValue: 0
+                    maximumValue: 100
+                    stepSize: 10
+                    tickmarksEnabled: true
+
+                    // disable slider when gradual support is enabled
+                    enabled: parseInt(infillSteps.properties.value) == 0
+
+                    // set initial value from stack
+                    value: parseInt(infillDensity.properties.value)
+
+                    onValueChanged: {
+                        infillDensity.setPropertyValue("value", infillSlider.value)
                     }
-                    model: infillModel;
 
-                    Item
+                    style: SliderStyle
                     {
-                        width: childrenRect.width;
-                        height: childrenRect.height;
 
-                        Rectangle
-                        {
-                            id: infillIconLining
+                        groove: Rectangle {
+                            id: groove
+                            implicitWidth: 200
+                            implicitHeight: 2
+                            color: control.enabled ? UM.Theme.getColor("quality_slider_available") : UM.Theme.getColor("quality_slider_unavailable")
+                            radius: 1
+                        }
 
-                            width: (infillCellRight.width - ((infillModel.count - 1)  * UM.Theme.getSize("sidebar_margin").width)) / (infillModel.count);
-                            height: width
-
-                            border.color:
-                            {
-                                if(!base.settingsEnabled)
-                                {
-                                    return UM.Theme.getColor("setting_control_disabled_border")
-                                }
-                                else if(infillListView.activeIndex == index)
-                                {
-                                    return UM.Theme.getColor("setting_control_selected")
-                                }
-                                else if(infillMouseArea.containsMouse)
-                                {
-                                    return UM.Theme.getColor("setting_control_border_highlight")
-                                }
-                                return UM.Theme.getColor("setting_control_border")
-                            }
-                            border.width: UM.Theme.getSize("default_lining").width
-                            color:
-                            {
-                                if(infillListView.activeIndex == index)
-                                {
-                                    if(!base.settingsEnabled)
-                                    {
-                                        return UM.Theme.getColor("setting_control_disabled_text")
-                                    }
-                                    return UM.Theme.getColor("setting_control_selected")
-                                }
-                                return "transparent"
-                            }
-
-                            UM.RecolorImage
-                            {
-                                id: infillIcon
-                                anchors.fill: parent;
-                                anchors.margins: 2
-
-                                sourceSize.width: width
-                                sourceSize.height: width
-                                source: UM.Theme.getIcon(model.icon);
-                                color: {
-                                    if(infillListView.activeIndex == index)
-                                    {
-                                        return UM.Theme.getColor("text_emphasis")
-                                    }
-                                    if(!base.settingsEnabled)
-                                    {
-                                        return UM.Theme.getColor("setting_control_disabled_text")
-                                    }
-                                    return UM.Theme.getColor("setting_control_disabled_text")
-                                }
-                            }
-
-                            MouseArea
-                            {
-                                id: infillMouseArea
-                                anchors.fill: parent
-                                hoverEnabled: true
-                                enabled: base.settingsEnabled
-                                onClicked: {
-                                    if (infillListView.activeIndex != index)
-                                    {
-                                        infillDensity.setPropertyValue("value", model.percentage)
-                                        infillSteps.setPropertyValue("value", model.steps)
-                                    }
-                                }
-                                onEntered:
-                                {
-                                    base.showTooltip(infillCellRight, Qt.point(-infillCellRight.x, 0), model.text);
-                                }
-                                onExited:
-                                {
-                                    base.hideTooltip();
-                                }
+                        handle: Item {
+                            Rectangle {
+                                id: handleButton
+                                anchors.centerIn: parent
+                                color: control.enabled ? UM.Theme.getColor("quality_slider_available") : UM.Theme.getColor("quality_slider_unavailable")
+                                implicitWidth: 10
+                                implicitHeight: 10
+                                radius: 10
                             }
                         }
-                        Text
-                        {
-                            id: infillLabel
-                            width: (infillCellRight.width - ((infillModel.count - 1)  * UM.Theme.getSize("sidebar_margin").width)) / (infillModel.count);
-                            horizontalAlignment: Text.AlignHCenter
-                            verticalAlignment: Text.AlignVCenter
-                            wrapMode: Text.WordWrap
-                            font: UM.Theme.getFont("default")
-                            anchors.top: infillIconLining.bottom
-                            anchors.horizontalCenter: infillIconLining.horizontalCenter
-                            color: infillListView.activeIndex == index ? UM.Theme.getColor("setting_control_text") : UM.Theme.getColor("setting_control_border")
-                            text: name
+
+                        tickmarks: Repeater {
+                            id: repeater
+                            model: control.maximumValue / control.stepSize + 1
+                            Rectangle {
+                                anchors.verticalCenter: parent.verticalCenter
+                                color: control.enabled ? UM.Theme.getColor("quality_slider_available") : UM.Theme.getColor("quality_slider_unavailable")
+                                width: 1
+                                height: 6
+                                y: 0
+                                x: styleData.handleWidth / 2 + index * ((repeater.width - styleData.handleWidth) / (repeater.count-1))
+                            }
                         }
                     }
                 }
 
+                Rectangle
+                {
+                    id: infillIcon
+
+                    width: (parent.width / 5) - (UM.Theme.getSize("sidebar_margin").width)
+                    height: width
+
+                    anchors.right: parent.right
+                    anchors.top: parent.top
+                    anchors.topMargin: UM.Theme.getSize("sidebar_margin").height / 2
+
+                    // we loop over all density icons and only show the one that has the current density and steps
+                    Repeater
+                    {
+                        id: infillIconList
+                        model: infillModel
+                        anchors.fill: parent
+
+                        property int activeIndex: {
+                            for (var i = 0; i < infillModel.count; i++) {
+                                var density = parseInt(infillDensity.properties.value)
+                                var steps = parseInt(infillSteps.properties.value)
+                                var infillModelItem = infillModel.get(i)
+
+                                if (density >= infillModelItem.percentageMin
+                                    && density <= infillModelItem.percentageMax
+                                    && steps >= infillModelItem.stepsMin
+                                    && steps <= infillModelItem.stepsMax){
+                                        return i
+                                    }
+                            }
+                            return -1
+                        }
+
+                        Rectangle
+                        {
+                            anchors.fill: parent
+                            visible: infillIconList.activeIndex == index
+
+                            border.width: UM.Theme.getSize("default_lining").width
+                            border.color: UM.Theme.getColor("quality_slider_available")
+
+                            UM.RecolorImage {
+                                anchors.fill: parent
+                                anchors.margins: 2
+                                sourceSize.width: width
+                                sourceSize.height: width
+                                source: UM.Theme.getIcon(model.icon)
+                                color: UM.Theme.getColor("quality_slider_unavailable")
+                            }
+                        }
+                    }
+                }
+
+                //  Gradual Support Infill Checkbox
+                CheckBox {
+                    id: enableGradualInfillCheckBox
+                    property alias _hovered: enableGradualInfillMouseArea.containsMouse
+
+                    anchors.top: infillSlider.bottom
+                    anchors.topMargin: UM.Theme.getSize("sidebar_margin").height
+                    anchors.left: infillCellRight.left
+
+                    style: UM.Theme.styles.checkbox
+                    enabled: base.settingsEnabled
+                    checked: parseInt(infillSteps.properties.value) > 0
+
+                    MouseArea {
+                        id: enableGradualInfillMouseArea
+
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        enabled: true
+
+                        onClicked: {
+                            infillSteps.setPropertyValue("value", (parseInt(infillSteps.properties.value) == 0) ? 5 : 0)
+                            infillDensity.setPropertyValue("value", 90)
+                        }
+
+                        onEntered: {
+                            base.showTooltip(enableGradualInfillCheckBox, Qt.point(-infillCellRight.x, 0),
+                                catalog.i18nc("@label", "Gradual infill will gradually increase the amount of infill towards the top."))
+                        }
+
+                        onExited: {
+                            base.hideTooltip()
+                        }
+                    }
+
+                    Text {
+                        id: gradualInfillLabel
+                        anchors.left: enableGradualInfillCheckBox.right
+                        anchors.leftMargin: UM.Theme.getSize("sidebar_margin").width / 2
+                        text: catalog.i18nc("@label", "Enable gradual")
+                        font: UM.Theme.getFont("default")
+                        color: UM.Theme.getColor("text")
+                    }
+                }
+
+                //  Infill list model for mapping icon
                 ListModel
                 {
                     id: infillModel
-
                     Component.onCompleted:
                     {
                         infillModel.append({
-                            name: catalog.i18nc("@label", "0%"),
-                            percentage: 0,
-                            steps: 0,
                             percentageMin: -1,
                             percentageMax: 0,
                             stepsMin: -1,
                             stepsMax: 0,
-                            text: catalog.i18nc("@label", "Empty infill will leave your model hollow with low strength."),
                             icon: "hollow"
                         })
                         infillModel.append({
-                            name: catalog.i18nc("@label", "20%"),
-                            percentage: 20,
-                            steps: 0,
                             percentageMin: 0,
-                            percentageMax: 30,
+                            percentageMax: 40,
                             stepsMin: -1,
                             stepsMax: 0,
-                            text: catalog.i18nc("@label", "Light (20%) infill will give your model an average strength."),
                             icon: "sparse"
                         })
                         infillModel.append({
-                            name: catalog.i18nc("@label", "50%"),
-                            percentage: 50,
-                            steps: 0,
-                            percentageMin: 30,
-                            percentageMax: 70,
+                            percentageMin: 40,
+                            percentageMax: 89,
                             stepsMin: -1,
                             stepsMax: 0,
-                            text: catalog.i18nc("@label", "Dense (50%) infill will give your model an above average strength."),
                             icon: "dense"
                         })
                         infillModel.append({
-                            name: catalog.i18nc("@label", "100%"),
-                            percentage: 100,
-                            steps: 0,
-                            percentageMin: 70,
+                            percentageMin: 90,
                             percentageMax: 9999999999,
                             stepsMin: -1,
                             stepsMax: 0,
-                            text: catalog.i18nc("@label", "Solid (100%) infill will make your model completely solid."),
                             icon: "solid"
                         })
                         infillModel.append({
-                            name: catalog.i18nc("@label", "Gradual"),
-                            percentage: 90,
-                            steps: 5,
                             percentageMin: 0,
                             percentageMax: 9999999999,
-                            stepsMin: 0,
+                            stepsMin: 1,
                             stepsMax: 9999999999,
-                            infill_layer_height: 1.5,
-                            text: catalog.i18nc("@label", "Gradual infill will gradually increase the amount of infill towards the top."),
                             icon: "gradual"
                         })
                     }
                 }
             }
 
+            //
+            //  Enable support
+            //
             Text
             {
                 id: enableSupportLabel
                 visible: enableSupportCheckBox.visible
+
+                anchors.top: infillCellRight.bottom
+                anchors.topMargin: UM.Theme.getSize("sidebar_margin").height
                 anchors.left: parent.left
                 anchors.leftMargin: UM.Theme.getSize("sidebar_margin").width
                 anchors.verticalCenter: enableSupportCheckBox.verticalCenter
+
                 text: catalog.i18nc("@label", "Generate Support");
                 font: UM.Theme.getFont("default");
                 color: UM.Theme.getColor("text");
@@ -845,7 +813,6 @@ Item
                     anchors.rightMargin: UM.Theme.getSize("sidebar_margin").width
                     anchors.top: parent.top
                     wrapMode: Text.WordWrap
-                    //: Tips label
                     text: catalog.i18nc("@label", "Need help improving your prints?<br>Read the <a href='%1'>Ultimaker Troubleshooting Guides</a>").arg("https://ultimaker.com/en/troubleshooting")
                     font: UM.Theme.getFont("default");
                     color: UM.Theme.getColor("text");
@@ -864,35 +831,9 @@ Item
                 storeIndex: 0
             }
 
-            Binding
-            {
-                target: infillDensity
-                property: "containerStackId"
-                value:
-                {
-                    var activeMachineId = Cura.MachineManager.activeMachineId;
-                    if (machineExtruderCount.properties.value > 1)
-                    {
-                        var infillExtruderNr = parseInt(infillExtruderNumber.properties.value);
-                        if (infillExtruderNr >= 0)
-                        {
-                            activeMachineId = ExtruderManager.extruderIds[infillExtruderNumber.properties.value];
-                        }
-                        else if (ExtruderManager.activeExtruderStackId)
-                        {
-                            activeMachineId = ExtruderManager.activeExtruderStackId;
-                        }
-                    }
-
-                    infillSteps.containerStackId = activeMachineId;
-                    return activeMachineId;
-                }
-            }
-
             UM.SettingPropertyProvider
             {
                 id: infillDensity
-
                 containerStackId: Cura.MachineManager.activeStackId
                 key: "infill_sparse_density"
                 watchedProperties: [ "value" ]
@@ -902,10 +843,9 @@ Item
             UM.SettingPropertyProvider
             {
                 id: infillSteps
-
                 containerStackId: Cura.MachineManager.activeStackId
                 key: "gradual_infill_steps"
-                watchedProperties: [ "value" ]
+                watchedProperties: ["value"]
                 storeIndex: 0
             }
 

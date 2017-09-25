@@ -1389,7 +1389,7 @@
                 "zig_zaggify_infill":
                 {
                     "label": "Connect Infill Lines",
-                    "description": "Connect the ends where the infill pattern meets the inner wall using a lines which follows the shape of the inner wall. Enabling this setting can make the infill adhere to the walls better and reduces the effects on infill on the quality of vertical surfaces. Disabling this setting reduces the amount of material used.",
+                    "description": "Connect the ends where the infill pattern meets the inner wall using a line which follows the shape of the inner wall. Enabling this setting can make the infill adhere to the walls better and reduce the effects of infill on the quality of vertical surfaces. Disabling this setting reduces the amount of material used.",
                     "type": "bool",
                     "default_value": true,
                     "enabled": "infill_pattern == 'cross' or infill_pattern == 'cross_3d'",
@@ -5753,6 +5753,16 @@
                     "description": "Go over the top surface one additional time, but without extruding material. This is meant to melt the plastic on top further, creating a smoother surface.",
                     "type": "bool",
                     "default_value": false,
+                    "limit_to_extruder": "top_bottom_extruder_nr",
+                    "settable_per_mesh": true
+                },
+                "ironing_only_highest_layer":
+                {
+                    "label": "Iron Only Highest Layer",
+                    "description": "Only perform ironing on the very last layer of the mesh. This saves time if the lower layers don't need a smooth surface finish.",
+                    "type": "bool",
+                    "default_value": false,
+                    "enabled": "ironing_enabled",
                     "limit_to_extruder": "top_bottom_extruder_nr",
                     "settable_per_mesh": true
                 },

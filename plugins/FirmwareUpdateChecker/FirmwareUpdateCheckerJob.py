@@ -1,5 +1,5 @@
 # Copyright (c) 2017 Ultimaker B.V.
-# Cura is released under the terms of the AGPLv3 or higher.
+# Cura is released under the terms of the LGPLv3 or higher.
 
 from UM.Preferences import Preferences
 from UM.Application import Application
@@ -39,7 +39,9 @@ class FirmwareUpdateCheckerJob(Job):
             return
 
         try:
-            request = urllib.request.Request(self._url)
+            application_name = Application.getInstance().getApplicationName()
+            headers = {"User-Agent": "%s - %s" % (application_name, Application.getInstance().getVersion())}
+            request = urllib.request.Request(self._url, headers = headers)
             current_version_file = urllib.request.urlopen(request)
             reader = codecs.getreader("utf-8")
 

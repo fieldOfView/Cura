@@ -1,5 +1,5 @@
 # Copyright (c) 2016 Ultimaker B.V.
-# Cura is released under the terms of the AGPLv3 or higher.
+# Cura is released under the terms of the LGPLv3 or higher.
 
 from .avr_isp import stk500v2, ispBase, intelHex
 import serial   # type: ignore
@@ -119,7 +119,8 @@ class USBPrinterOutputDevice(PrinterOutputDevice):
         self._sendCommand("G0 Y%s F%s" % (z, speed))
 
     def _homeHead(self):
-        self._sendCommand("G28")
+        self._sendCommand("G28 X")
+        self._sendCommand("G28 Y")
 
     def _homeBed(self):
         self._sendCommand("G28 Z")

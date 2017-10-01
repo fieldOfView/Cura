@@ -1,5 +1,5 @@
 // Copyright (c) 2017 Ultimaker B.V.
-// Cura is released under the terms of the AGPLv3 or higher.
+// Cura is released under the terms of the LGPLv3 or higher.
 
 import QtQuick 2.1
 import QtQuick.Controls 1.1
@@ -513,7 +513,7 @@ UM.PreferencesPage
 
                 Column
                 {
-                    spacing: 4
+                    spacing: 4 * screenScaleFactor
 
                     Label
                     {
@@ -523,7 +523,7 @@ UM.PreferencesPage
                     ComboBox
                     {
                         id: choiceOnOpenProjectDropDownButton
-                        width: 200
+                        width: 200 * screenScaleFactor
 
                         model: ListModel
                         {
@@ -572,7 +572,7 @@ UM.PreferencesPage
 
                 Column
                 {
-                    spacing: 4
+                    spacing: 4 * screenScaleFactor
 
                     Label
                     {
@@ -583,7 +583,7 @@ UM.PreferencesPage
                     ComboBox
                     {
                         id: choiceOnProfileOverrideDropDownButton
-                        width: 200
+                        width: 200 * screenScaleFactor
 
                         model: ListModel
                         {

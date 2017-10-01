@@ -33,6 +33,7 @@ cura.desktop
 .settings
 
 #Externally located plug-ins.
+plugins/CuraSolidWorksPlugin
 plugins/Doodle3D-cura-plugin
 plugins/GodMode
 plugins/PostProcessingPlugin
@@ -56,4 +57,6 @@ cmake_install.cmake
 #Debug
 *.gcode
 run.sh
+.scannerwork/
+CuraEngine
 

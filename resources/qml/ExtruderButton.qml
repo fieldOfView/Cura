@@ -1,5 +1,5 @@
 // Copyright (c) 2017 Ultimaker B.V.
-// Cura is released under the terms of the AGPLv3 or higher.
+// Cura is released under the terms of the LGPLv3 or higher.
 
 import QtQuick 2.2
 import QtQuick.Controls 1.1
@@ -67,7 +67,7 @@ Button
         height: UM.Theme.getSize("extruder_button_material").height
         radius: width / 2
 
-        border.width: 1
+        border.width: UM.Theme.getSize("default_lining").width
         border.color: UM.Theme.getColor("extruder_button_material_border")
 
         opacity: !base.enabled ? 0.2 : 1.0

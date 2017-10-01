@@ -1,5 +1,5 @@
 # Copyright (c) 2016 Ultimaker B.V.
-# Cura is released under the terms of the AGPLv3 or higher.
+# Cura is released under the terms of the LGPLv3 or higher.
 
 from PyQt5.QtCore import QUrl, pyqtSignal, QObject, pyqtProperty, QCoreApplication
 from UM.FlameProfiler import pyqtSlot
@@ -235,7 +235,7 @@ class WorkspaceDialog(QObject):
             self._result["definition_changes"] = None
 
         # If the machine needs to be re-created, the definition_changes should also be re-created.
-        if self._result["machine"] == "new" and self._result["definition_changes"] is None:
+        if "machine" in self._result and self._result["machine"] == "new" and self._result["definition_changes"] is None:
             self._result["definition_changes"] = "new"
 
         if "material" in self._result and not self._has_material_conflict:
@@ -267,7 +267,7 @@ class WorkspaceDialog(QObject):
     @pyqtSlot()
     ##  Used to notify the dialog so the lock can be released.
     def notifyClosed(self):
-        self._result = {}
+        self._result = {} # The result should be cleared before hide, because after it is released the main thread lock
         self._visible = False
         self._lock.release()
 
@@ -283,9 +283,10 @@ class WorkspaceDialog(QObject):
 
     @pyqtSlot()
     def onCancelButtonClicked(self):
+        self._result = {}
         self._view.hide()
         self.hide()
-        self._result = {}
+
 
     ##  Block thread until the dialog is closed.
     def waitForClose(self):

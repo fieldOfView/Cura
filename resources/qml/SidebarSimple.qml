@@ -1,5 +1,5 @@
 // Copyright (c) 2017 Ultimaker B.V.
-// Cura is released under the terms of the AGPLv3 or higher.
+// Cura is released under the terms of the LGPLv3 or higher.
 
 import QtQuick 2.2
 import QtQuick.Controls 1.1
@@ -66,6 +66,7 @@ Item
                 {
                     target: Cura.MachineManager
                     onActiveQualityChanged: qualityModel.update()
+                    onActiveMaterialChanged: qualityModel.update()
                 }
 
                 ListModel
@@ -138,8 +139,13 @@ Item
 
                     function reset () {
                         qualityModel.clear()
-                        qualityModel.totalTicks = Cura.ProfilesModel.rowCount() - 1 // minus one, because slider starts from 0
                         qualityModel.availableTotalTicks = -1
+
+                        // check, the ticks count cannot be less than zero
+                        if(Cura.ProfilesModel.rowCount() != 0)
+                            qualityModel.totalTicks = Cura.ProfilesModel.rowCount() - 1  // minus one, because slider starts from 0
+                        else
+                            qualityModel.totalTicks = 0
                     }
                 }
 
@@ -181,7 +187,10 @@ Item
 
                             x: {
                                 // Make sure the text aligns correctly with each tick
-                                if (index == 0) {
+                                if (qualityModel.totalTicks == 0) {
+                                    // If there is only one tick, align it centrally
+                                    return ((base.width * 0.55) - width) / 2
+                                } else if (index == 0) {
                                     return (base.width * 0.55 / qualityModel.totalTicks) * index
                                 } else if (index == qualityModel.totalTicks) {
                                     return (base.width * 0.55 / qualityModel.totalTicks) * index - width
@@ -208,7 +217,7 @@ Item
                     {
                         id: groovechildrect
                         width: base.width * 0.55
-                        height: 2
+                        height: 2 * screenScaleFactor
                         color: UM.Theme.getColor("quality_slider_unavailable")
                         anchors.verticalCenter: qualitySlider.verticalCenter
                         x: 0
@@ -218,19 +227,28 @@ Item
                     Repeater
                     {
                         id: qualityRepeater
-                        model: qualityModel
+                        model: qualityModel.totalTicks > 0 ? qualityModel : 0
 
                         Rectangle
                         {
                             anchors.verticalCenter: parent.verticalCenter
                             color: Cura.ProfilesModel.getItem(index).available ? UM.Theme.getColor("quality_slider_available") : UM.Theme.getColor("quality_slider_unavailable")
-                            width: 1
-                            height: 6
+                            width: 1 * screenScaleFactor
+                            height: 6 * screenScaleFactor
                             y: 0
                             x: qualityModel.qualitySliderStepWidth * index
                         }
                     }
 
+                    Rectangle {
+                        id: disabledHandleButton
+                        visible: !qualitySlider.visible
+                        anchors.centerIn: parent
+                        color: UM.Theme.getColor("quality_slider_unavailable")
+                        implicitWidth: 10 * screenScaleFactor
+                        implicitHeight: implicitWidth
+                        radius: width / 2
+                    }
 
                     Slider
                     {
@@ -238,10 +256,11 @@ Item
                         height: UM.Theme.getSize("sidebar_margin").height
                         anchors.bottom: speedSlider.bottom
                         enabled: qualityModel.availableTotalTicks > 0
+                        visible: qualityModel.totalTicks > 0
                         updateValueWhileDragging : false
 
-                        minimumValue: qualityModel.qualitySliderAvailableMin
-                        maximumValue: qualityModel.qualitySliderAvailableMax
+                        minimumValue: qualityModel.qualitySliderAvailableMin >= 0 ? qualityModel.qualitySliderAvailableMin : 0
+                        maximumValue: qualityModel.qualitySliderAvailableMax >= 0 ? qualityModel.qualitySliderAvailableMax : 0
                         stepSize: 1
 
                         value: qualityModel.activeQualityId
@@ -255,18 +274,18 @@ Item
                         {
                             //Draw Available line
                             groove: Rectangle {
-                                implicitHeight: 2
+                                implicitHeight: 2 * screenScaleFactor
                                 color: UM.Theme.getColor("quality_slider_available")
-                                radius: 1
+                                radius: height / 2
                             }
                             handle: Item {
                                 Rectangle {
                                     id: qualityhandleButton
                                     anchors.centerIn: parent
-                                    color: control.enabled ? UM.Theme.getColor("quality_slider_available") : UM.Theme.getColor("quality_slider_unavailable")
-                                    implicitWidth: 10
-                                    implicitHeight: 10
-                                    radius: 10
+                                    color: UM.Theme.getColor("quality_slider_available")
+                                    implicitWidth: 10 * screenScaleFactor
+                                    implicitHeight: implicitWidth
+                                    radius: implicitWidth / 2
                                 }
                             }
                         }
@@ -304,7 +323,7 @@ Item
 
                     text: catalog.i18nc("@label", "Slower")
                     font: UM.Theme.getFont("default")
-                    color: UM.Theme.getColor("text")
+                    color: (qualityModel.availableTotalTicks > 0) ? UM.Theme.getColor("quality_slider_available") : UM.Theme.getColor("quality_slider_unavailable")
                     horizontalAlignment: Text.AlignLeft
                 }
 
@@ -315,7 +334,7 @@ Item
 
                     text: catalog.i18nc("@label", "Faster")
                     font: UM.Theme.getFont("default")
-                    color: UM.Theme.getColor("text")
+                    color: (qualityModel.availableTotalTicks > 0) ? UM.Theme.getColor("quality_slider_available") : UM.Theme.getColor("quality_slider_unavailable")
                     horizontalAlignment: Text.AlignRight
                 }
             }
@@ -349,13 +368,11 @@ Item
                 }
             }
 
-
-
             Item
             {
                 id: infillCellRight
 
-                height: infillSlider.height + enableGradualInfillCheckBox.height + (UM.Theme.getSize("sidebar_margin").height * 2)
+                height: infillSlider.height + UM.Theme.getSize("sidebar_margin").height + enableGradualInfillCheckBox.visible * (enableGradualInfillCheckBox.height + UM.Theme.getSize("sidebar_margin").height)
                 width: UM.Theme.getSize("sidebar").width * .55
 
                 anchors.left: infillCellLeft.right
@@ -367,7 +384,7 @@ Item
 
                     //anchors.top: parent.top
                     anchors.left: infillSlider.left
-                    anchors.leftMargin: (infillSlider.value / infillSlider.stepSize) * (infillSlider.width / (infillSlider.maximumValue / infillSlider.stepSize)) - 10
+                    anchors.leftMargin: (infillSlider.value / infillSlider.stepSize) * (infillSlider.width / (infillSlider.maximumValue / infillSlider.stepSize)) - 10 * screenScaleFactor
                     anchors.right: parent.right
 
                     text: infillSlider.value + "%"
@@ -390,7 +407,7 @@ Item
 
                     minimumValue: 0
                     maximumValue: 100
-                    stepSize: 10
+                    stepSize: (parseInt(infillDensity.properties.value) % 10 == 0) ? 10 : 1
                     tickmarksEnabled: true
 
                     // disable slider when gradual support is enabled
@@ -400,16 +417,16 @@ Item
                     value: parseInt(infillDensity.properties.value)
 
                     onValueChanged: {
-                        infillDensity.setPropertyValue("value", infillSlider.value)
+                        // Explicitly cast to string to make sure the value passed to Python is an integer.
+                        infillDensity.setPropertyValue("value", String(parseInt(infillSlider.value)))
                     }
 
                     style: SliderStyle
                     {
-
                         groove: Rectangle {
                             id: groove
-                            implicitWidth: 200
-                            implicitHeight: 2
+                            implicitWidth: 200 * screenScaleFactor
+                            implicitHeight: 2 * screenScaleFactor
                             color: control.enabled ? UM.Theme.getColor("quality_slider_available") : UM.Theme.getColor("quality_slider_unavailable")
                             radius: 1
                         }
@@ -419,22 +436,32 @@ Item
                                 id: handleButton
                                 anchors.centerIn: parent
                                 color: control.enabled ? UM.Theme.getColor("quality_slider_available") : UM.Theme.getColor("quality_slider_unavailable")
-                                implicitWidth: 10
-                                implicitHeight: 10
-                                radius: 10
+                                implicitWidth: 10 * screenScaleFactor
+                                implicitHeight: 10 * screenScaleFactor
+                                radius: 10 * screenScaleFactor
                             }
                         }
 
                         tickmarks: Repeater {
                             id: repeater
                             model: control.maximumValue / control.stepSize + 1
+
+                            // check if a tick should be shown based on it's index and wether the infill density is a multiple of 10 (slider step size)
+                            function shouldShowTick (index) {
+                                if ((parseInt(infillDensity.properties.value) % 10 == 0) || (index % 10 == 0)) {
+                                    return true
+                                }
+                                return false
+                            }
+
                             Rectangle {
                                 anchors.verticalCenter: parent.verticalCenter
                                 color: control.enabled ? UM.Theme.getColor("quality_slider_available") : UM.Theme.getColor("quality_slider_unavailable")
-                                width: 1
-                                height: 6
+                                width: 1 * screenScaleFactor
+                                height: 6 * screenScaleFactor
                                 y: 0
                                 x: styleData.handleWidth / 2 + index * ((repeater.width - styleData.handleWidth) / (repeater.count-1))
+                                visible: shouldShowTick(index)
                             }
                         }
                     }
@@ -480,11 +507,11 @@ Item
                             visible: infillIconList.activeIndex == index
 
                             border.width: UM.Theme.getSize("default_lining").width
-                            border.color: UM.Theme.getColor("quality_slider_available")
+                            border.color: UM.Theme.getColor("quality_slider_unavailable")
 
                             UM.RecolorImage {
                                 anchors.fill: parent
-                                anchors.margins: 2
+                                anchors.margins: 2 * screenScaleFactor
                                 sourceSize.width: width
                                 sourceSize.height: width
                                 source: UM.Theme.getIcon(model.icon)
@@ -500,11 +527,12 @@ Item
                     property alias _hovered: enableGradualInfillMouseArea.containsMouse
 
                     anchors.top: infillSlider.bottom
-                    anchors.topMargin: UM.Theme.getSize("sidebar_margin").height
+                    anchors.topMargin: UM.Theme.getSize("sidebar_margin").height / 2 // closer to slider since it belongs to the same category
                     anchors.left: infillCellRight.left
 
                     style: UM.Theme.styles.checkbox
                     enabled: base.settingsEnabled
+                    visible: infillSteps.properties.enabled == "True"
                     checked: parseInt(infillSteps.properties.value) > 0
 
                     MouseArea {
@@ -593,7 +621,7 @@ Item
                 visible: enableSupportCheckBox.visible
 
                 anchors.top: infillCellRight.bottom
-                anchors.topMargin: UM.Theme.getSize("sidebar_margin").height
+                anchors.topMargin: UM.Theme.getSize("sidebar_margin").height * 1.5
                 anchors.left: parent.left
                 anchors.leftMargin: UM.Theme.getSize("sidebar_margin").width
                 anchors.verticalCenter: enableSupportCheckBox.verticalCenter
@@ -608,8 +636,7 @@ Item
                 id: enableSupportCheckBox
                 property alias _hovered: enableSupportMouseArea.containsMouse
 
-                anchors.top: infillCellRight.bottom
-                anchors.topMargin: UM.Theme.getSize("sidebar_margin").height
+                anchors.top: enableSupportLabel.top
                 anchors.left: infillCellRight.left
 
                 style: UM.Theme.styles.checkbox;
@@ -721,15 +748,19 @@ Item
             {
                 id: adhesionHelperLabel
                 visible: adhesionCheckBox.visible
-                anchors.left: parent.left
-                anchors.leftMargin: UM.Theme.getSize("sidebar_margin").width
-                anchors.right: infillCellLeft.right
-                anchors.rightMargin: UM.Theme.getSize("sidebar_margin").width
-                anchors.verticalCenter: adhesionCheckBox.verticalCenter
-                text: catalog.i18nc("@label", "Build Plate Adhesion");
-                font: UM.Theme.getFont("default");
-                color: UM.Theme.getColor("text");
+
+                text: catalog.i18nc("@label", "Build Plate Adhesion")
+                font: UM.Theme.getFont("default")
+                color: UM.Theme.getColor("text")
                 elide: Text.ElideRight
+
+                anchors {
+                    left: parent.left
+                    leftMargin: UM.Theme.getSize("sidebar_margin").width
+                    right: infillCellLeft.right
+                    rightMargin: UM.Theme.getSize("sidebar_margin").width
+                    verticalCenter: adhesionCheckBox.verticalCenter
+                }
             }
 
             CheckBox
@@ -824,7 +855,6 @@ Item
             UM.SettingPropertyProvider
             {
                 id: infillExtruderNumber
-
                 containerStackId: Cura.MachineManager.activeStackId
                 key: "infill_extruder_nr"
                 watchedProperties: [ "value" ]
@@ -845,7 +875,7 @@ Item
                 id: infillSteps
                 containerStackId: Cura.MachineManager.activeStackId
                 key: "gradual_infill_steps"
-                watchedProperties: ["value"]
+                watchedProperties: ["value", "enabled"]
                 storeIndex: 0
             }
 

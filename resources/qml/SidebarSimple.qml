@@ -67,6 +67,7 @@ Item
                     target: Cura.MachineManager
                     onActiveQualityChanged: qualityModel.update()
                     onActiveMaterialChanged: qualityModel.update()
+                    onActiveVariantChanged: qualityModel.update()
                 }
 
                 ListModel
@@ -75,7 +76,7 @@ Item
 
                     property var totalTicks: 0
                     property var availableTotalTicks: 0
-                    property var activeQualityId: 0
+                    property var activeQualityIndex: 0
 
                     property var qualitySliderStepWidth: 0
                     property var qualitySliderAvailableMin : 0
@@ -96,7 +97,7 @@ Item
 
                             // Set selected value
                             if (Cura.MachineManager.activeQualityId == qualityItem.id) {
-                                qualityModel.activeQualityId = i
+                                qualityModel.activeQualityIndex = i
                             }
 
                             // Set min available
@@ -143,13 +144,17 @@ Item
 
                         // check, the ticks count cannot be less than zero
                         if(Cura.ProfilesModel.rowCount() != 0)
+                        {
                             qualityModel.totalTicks = Cura.ProfilesModel.rowCount() - 1  // minus one, because slider starts from 0
+                        }
                         else
+                        {
                             qualityModel.totalTicks = 0
+                        }
                     }
                 }
 
-                Text
+                Label
                 {
                     id: qualityRowTitle
                     text: catalog.i18nc("@label", "Layer Height")
@@ -166,11 +171,11 @@ Item
                     {
                         model: qualityModel
 
-                        Text
+                        Label
                         {
                             anchors.verticalCenter: parent.verticalCenter
                             anchors.top: parent.top
-                            anchors.topMargin: UM.Theme.getSize("sidebar_margin").height / 2
+                            anchors.topMargin: parseInt(UM.Theme.getSize("sidebar_margin").height / 2)
                             color: (Cura.MachineManager.activeMachine != null && Cura.ProfilesModel.getItem(index).available) ? UM.Theme.getColor("quality_slider_available") : UM.Theme.getColor("quality_slider_unavailable")
                             text:
                             {
@@ -189,13 +194,13 @@ Item
                                 // Make sure the text aligns correctly with each tick
                                 if (qualityModel.totalTicks == 0) {
                                     // If there is only one tick, align it centrally
-                                    return ((base.width * 0.55) - width) / 2
+                                    return parseInt(((base.width * 0.55) - width) / 2)
                                 } else if (index == 0) {
                                     return (base.width * 0.55 / qualityModel.totalTicks) * index
                                 } else if (index == qualityModel.totalTicks) {
                                     return (base.width * 0.55 / qualityModel.totalTicks) * index - width
                                 } else {
-                                    return (base.width * 0.55 / qualityModel.totalTicks) * index - (width / 2)
+                                    return parseInt((base.width * 0.55 / qualityModel.totalTicks) * index - (width / 2))
                                 }
                             }
                         }
@@ -263,7 +268,7 @@ Item
                         maximumValue: qualityModel.qualitySliderAvailableMax >= 0 ? qualityModel.qualitySliderAvailableMax : 0
                         stepSize: 1
 
-                        value: qualityModel.activeQualityId
+                        value: qualityModel.activeQualityIndex
 
                         width: qualityModel.qualitySliderStepWidth * qualityModel.availableTotalTicks
 
@@ -291,10 +296,11 @@ Item
                         }
 
                         onValueChanged: {
-                            if(Cura.MachineManager.activeMachine != null)
+                            // Only change if an active machine is set and the slider is visible at all.
+                            if(Cura.MachineManager.activeMachine != null && visible)
                             {
                                 //Prevent updating during view initializing. Trigger only if the value changed by user
-                                if(qualitySlider.value != qualityModel.activeQualityId)
+                                if(qualitySlider.value != qualityModel.activeQualityIndex)
                                 {
                                     //start updating with short delay
                                     qualitySliderChangeTimer.start();
@@ -304,7 +310,7 @@ Item
                     }
                 }
 
-                Text
+                Label
                 {
                     id: speedLabel
                     anchors.top: speedSlider.bottom
@@ -316,7 +322,7 @@ Item
                     color: UM.Theme.getColor("text")
                 }
 
-                Text
+                Label
                 {
                     anchors.bottom: speedLabel.bottom
                     anchors.left: speedSlider.left
@@ -327,7 +333,7 @@ Item
                     horizontalAlignment: Text.AlignLeft
                 }
 
-                Text
+                Label
                 {
                     anchors.bottom: speedLabel.bottom
                     anchors.right: speedSlider.right
@@ -354,7 +360,7 @@ Item
 
                 width: UM.Theme.getSize("sidebar").width * .45 - UM.Theme.getSize("sidebar_margin").width
 
-                Text
+                Label
                 {
                     id: infillLabel
                     text: catalog.i18nc("@label", "Infill")
@@ -379,7 +385,7 @@ Item
                 anchors.top: infillCellLeft.top
                 anchors.topMargin: UM.Theme.getSize("sidebar_margin").height
 
-                Text {
+                Label {
                     id: selectedInfillRateText
 
                     //anchors.top: parent.top
@@ -387,10 +393,17 @@ Item
                     anchors.leftMargin: (infillSlider.value / infillSlider.stepSize) * (infillSlider.width / (infillSlider.maximumValue / infillSlider.stepSize)) - 10 * screenScaleFactor
                     anchors.right: parent.right
 
-                    text: infillSlider.value + "%"
+                    text: parseInt(infillDensity.properties.value) + "%"
                     horizontalAlignment: Text.AlignLeft
 
                     color: infillSlider.enabled ? UM.Theme.getColor("quality_slider_available") : UM.Theme.getColor("quality_slider_unavailable")
+                }
+
+                // We use a binding to make sure that after manually setting infillSlider.value it is still bound to the property provider
+                Binding {
+                    target: infillSlider
+                    property: "value"
+                    value: parseInt(infillDensity.properties.value)
                 }
 
                 Slider
@@ -407,7 +420,7 @@ Item
 
                     minimumValue: 0
                     maximumValue: 100
-                    stepSize: (parseInt(infillDensity.properties.value) % 10 == 0) ? 10 : 1
+                    stepSize: 1
                     tickmarksEnabled: true
 
                     // disable slider when gradual support is enabled
@@ -417,8 +430,20 @@ Item
                     value: parseInt(infillDensity.properties.value)
 
                     onValueChanged: {
+
+                        // Don't round the value if it's already the same
+                        if (parseInt(infillDensity.properties.value) == infillSlider.value) {
+                            return
+                        }
+
+                        // Round the slider value to the nearest multiple of 10 (simulate step size of 10)
+                        var roundedSliderValue = Math.round(infillSlider.value / 10) * 10
+
+                        // Update the slider value to represent the rounded value
+                        infillSlider.value = roundedSliderValue
+
                         // Explicitly cast to string to make sure the value passed to Python is an integer.
-                        infillDensity.setPropertyValue("value", String(parseInt(infillSlider.value)))
+                        infillDensity.setPropertyValue("value", String(roundedSliderValue))
                     }
 
                     style: SliderStyle
@@ -448,7 +473,7 @@ Item
 
                             // check if a tick should be shown based on it's index and wether the infill density is a multiple of 10 (slider step size)
                             function shouldShowTick (index) {
-                                if ((parseInt(infillDensity.properties.value) % 10 == 0) || (index % 10 == 0)) {
+                                if (index % 10 == 0) {
                                     return true
                                 }
                                 return false
@@ -476,7 +501,7 @@ Item
 
                     anchors.right: parent.right
                     anchors.top: parent.top
-                    anchors.topMargin: UM.Theme.getSize("sidebar_margin").height / 2
+                    anchors.topMargin: parseInt(UM.Theme.getSize("sidebar_margin").height / 2)
 
                     // we loop over all density icons and only show the one that has the current density and steps
                     Repeater
@@ -527,7 +552,7 @@ Item
                     property alias _hovered: enableGradualInfillMouseArea.containsMouse
 
                     anchors.top: infillSlider.bottom
-                    anchors.topMargin: UM.Theme.getSize("sidebar_margin").height / 2 // closer to slider since it belongs to the same category
+                    anchors.topMargin: parseInt(UM.Theme.getSize("sidebar_margin").height / 2) // closer to slider since it belongs to the same category
                     anchors.left: infillCellRight.left
 
                     style: UM.Theme.styles.checkbox
@@ -542,9 +567,18 @@ Item
                         hoverEnabled: true
                         enabled: true
 
+                        property var previousInfillDensity: parseInt(infillDensity.properties.value)
+
                         onClicked: {
+                            // Set to 90% only when enabling gradual infill
+                            if (parseInt(infillSteps.properties.value) == 0) {
+                                previousInfillDensity = parseInt(infillDensity.properties.value)
+                                infillDensity.setPropertyValue("value", String(90))
+                            } else {
+                                infillDensity.setPropertyValue("value", String(previousInfillDensity))
+                            }
+
                             infillSteps.setPropertyValue("value", (parseInt(infillSteps.properties.value) == 0) ? 5 : 0)
-                            infillDensity.setPropertyValue("value", 90)
                         }
 
                         onEntered: {
@@ -557,10 +591,10 @@ Item
                         }
                     }
 
-                    Text {
+                    Label {
                         id: gradualInfillLabel
                         anchors.left: enableGradualInfillCheckBox.right
-                        anchors.leftMargin: UM.Theme.getSize("sidebar_margin").width / 2
+                        anchors.leftMargin: parseInt(UM.Theme.getSize("sidebar_margin").width / 2)
                         text: catalog.i18nc("@label", "Enable gradual")
                         font: UM.Theme.getFont("default")
                         color: UM.Theme.getColor("text")
@@ -615,13 +649,13 @@ Item
             //
             //  Enable support
             //
-            Text
+            Label
             {
                 id: enableSupportLabel
                 visible: enableSupportCheckBox.visible
 
                 anchors.top: infillCellRight.bottom
-                anchors.topMargin: UM.Theme.getSize("sidebar_margin").height * 1.5
+                anchors.topMargin: parseInt(UM.Theme.getSize("sidebar_margin").height * 1.5)
                 anchors.left: parent.left
                 anchors.leftMargin: UM.Theme.getSize("sidebar_margin").width
                 anchors.verticalCenter: enableSupportCheckBox.verticalCenter
@@ -668,7 +702,7 @@ Item
                 }
             }
 
-            Text
+            Label
             {
                 id: supportExtruderLabel
                 visible: supportExtruderCombobox.visible
@@ -744,7 +778,7 @@ Item
 
             }
 
-            Text
+            Label
             {
                 id: adhesionHelperLabel
                 visible: adhesionCheckBox.visible
@@ -830,12 +864,12 @@ Item
             {
                 id: tipsCell
                 anchors.top: adhesionCheckBox.visible ? adhesionCheckBox.bottom : (enableSupportCheckBox.visible ? supportExtruderCombobox.bottom : infillCellRight.bottom)
-                anchors.topMargin: UM.Theme.getSize("sidebar_margin").height * 2
+                anchors.topMargin: parseInt(UM.Theme.getSize("sidebar_margin").height * 2)
                 anchors.left: parent.left
                 width: parent.width
                 height: tipsText.contentHeight * tipsText.lineCount
 
-                Text
+                Label
                 {
                     id: tipsText
                     anchors.left: parent.left
@@ -882,7 +916,6 @@ Item
             UM.SettingPropertyProvider
             {
                 id: platformAdhesionType
-
                 containerStackId: Cura.MachineManager.activeMachineId
                 key: "adhesion_type"
                 watchedProperties: [ "value", "enabled" ]
@@ -892,7 +925,6 @@ Item
             UM.SettingPropertyProvider
             {
                 id: supportEnabled
-
                 containerStackId: Cura.MachineManager.activeMachineId
                 key: "support_enable"
                 watchedProperties: [ "value", "enabled", "description" ]
@@ -902,7 +934,6 @@ Item
             UM.SettingPropertyProvider
             {
                 id: machineExtruderCount
-
                 containerStackId: Cura.MachineManager.activeMachineId
                 key: "machine_extruder_count"
                 watchedProperties: [ "value" ]
@@ -912,7 +943,6 @@ Item
             UM.SettingPropertyProvider
             {
                 id: supportExtruderNr
-
                 containerStackId: Cura.MachineManager.activeMachineId
                 key: "support_extruder_nr"
                 watchedProperties: [ "value" ]

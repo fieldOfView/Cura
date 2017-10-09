@@ -332,7 +332,7 @@ Column
             rightMargin: UM.Theme.getSize("sidebar_margin").width
         }
 
-        Text
+        Label
         {
             id: materialLabel
             text: catalog.i18nc("@label","Material");

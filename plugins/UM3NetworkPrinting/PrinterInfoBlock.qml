@@ -4,7 +4,6 @@ import QtQuick.Controls.Styles 1.4
 
 import UM 1.3 as UM
 
-
 Rectangle
 {
     function strPadLeft(string, pad, length)
@@ -14,14 +13,7 @@ Rectangle
 
     function getPrettyTime(time)
     {
-        var hours = Math.floor(time / 3600)
-        time -= hours * 3600
-        var minutes = Math.floor(time / 60);
-        time -= minutes * 60
-        var seconds = Math.floor(time);
-
-        var finalTime = strPadLeft(hours, "0", 2) + ':' + strPadLeft(minutes,'0',2)+ ':' + strPadLeft(seconds,'0',2);
-        return finalTime;
+        return OutputDevice.formatDuration(time)
     }
 
     function formatPrintJobPercent(printJob)
@@ -37,6 +29,23 @@ Rectangle
         return Math.min(100, Math.round(printJob.time_elapsed / printJob.time_total * 100)) + "%";
     }
 
+    function printerStatusText(printer)
+    {
+        switch (printer.status)
+        {
+            case "pre_print":
+                return catalog.i18nc("@label", "Preparing to print")
+            case "printing":
+                return catalog.i18nc("@label:status", "Printing");
+            case "idle":
+                return catalog.i18nc("@label:status", "Available");
+            case "unreachable":  // TODO: new string
+            case "maintenance":  // TODO: new string
+            case "unknown":
+            default:
+                return catalog.i18nc("@label", "Unknown");
+        }
+    }
 
     id: printerDelegate
     property var printer
@@ -84,25 +93,38 @@ Rectangle
                 id: jobNameLabel
                 anchors.top: parent.top
                 anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.rightMargin: UM.Theme.getSize("default_margin").width
+
                 text: printJob != null ? printJob.name : ""
                 font: UM.Theme.getFont("default_bold")
+                elide: Text.ElideRight
+
             }
 
             Label
             {
                 id: jobOwnerLabel
                 anchors.top: jobNameLabel.bottom
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.rightMargin: UM.Theme.getSize("default_margin").width
                 text: printJob != null ? printJob.owner : ""
                 opacity: 0.50
+                elide: Text.ElideRight
             }
 
             Label
             {
                 id: totalTimeLabel
                 anchors.bottom: parent.bottom
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.rightMargin: UM.Theme.getSize("default_margin").width
                 text: printJob != null ? getPrettyTime(printJob.time_total) : ""
                 opacity: 0.65
                 font: UM.Theme.getFont("default")
+                elide: Text.ElideRight
             }
         }
 
@@ -143,37 +165,38 @@ Rectangle
                 anchors.right: printProgressArea.left
                 anchors.rightMargin: UM.Theme.getSize("default_margin").width
                 color: emphasisColor
-                UM.RecolorImage
+
+                Image
                 {
-                    anchors.verticalCenter: parent.verticalCenter
-                    anchors.horizontalCenter: parent.horizontalCenter
+                    width: parent.width
+                    height: width
+                    anchors.right: parent.right
+                    anchors.rightMargin: parent.rightMargin
                     source: "camera-icon.svg"
-                    width: sourceSize.width
-                    height: sourceSize.height * width / sourceSize.width
-                    color: "white"
                 }
             }
 
-            Row     // PrintCode config
+            Row     // PrintCore config
             {
                 id: extruderInfo
                 anchors.bottom: parent.bottom
 
                 width: parent.width / 2 - UM.Theme.getSize("default_margin").width
                 height: childrenRect.height
-                spacing: 10 * screenScaleFactor
+
+                spacing: UM.Theme.getSize("default_margin").width
 
                 PrintCoreConfiguration
                 {
                     id: leftExtruderInfo
-                    width: (parent.width-1) / 2
+                    width: (parent.width - extruderSeperator.width) / 2
                     printCoreConfiguration: printer.configuration[0]
                 }
 
                 Rectangle
                 {
                     id: extruderSeperator
-                    width: 1 * screenScaleFactor
+                    width: UM.Theme.getSize("default_lining").width
                     height: parent.height
                     color: lineColor
                 }
@@ -181,7 +204,7 @@ Rectangle
                 PrintCoreConfiguration
                 {
                     id: rightExtruderInfo
-                    width: (parent.width-1) / 2
+                    width: (parent.width - extruderSeperator.width) / 2
                     printCoreConfiguration: printer.configuration[1]
                 }
             }
@@ -197,24 +220,24 @@ Rectangle
                 border.color: lineColor
                 radius: cornerRadius
                 property var showExtended: {
-                    if(printJob!= null)
+                    if(printJob != null)
                     {
                         var extendStates = ["sent_to_printer", "wait_for_configuration", "printing", "pre_print", "post_print", "wait_cleanup", "queued"];
                         return extendStates.indexOf(printJob.status) !== -1;
                     }
-                    return ! printer.enabled;
-                }
-                visible:
-                {
-                    return true
+                    return !printer.enabled;
                 }
 
                 Item  // Status and Percent
                 {
                     id: printProgressTitleBar
+
+                    property var showPercent: {
+                        return printJob != null && (["printing", "post_print", "pre_print", "sent_to_printer"].indexOf(printJob.status) !== -1);
+                    }
+
                     width: parent.width
-                    //border.width: UM.Theme.getSize("default_lining").width
-                    //border.color: lineColor
+                    //TODO: hardcoded value
                     height: 40 * screenScaleFactor
                     anchors.left: parent.left
 
@@ -223,16 +246,16 @@ Rectangle
                         id: statusText
                         anchors.left: parent.left
                         anchors.leftMargin: UM.Theme.getSize("default_margin").width
-                        anchors.verticalCenter: parent.verticalCenter
                         anchors.right: progressText.left
                         anchors.rightMargin: UM.Theme.getSize("default_margin").width
+                        anchors.verticalCenter: parent.verticalCenter
                         text: {
-                            if ( ! printer.enabled)
+                            if (!printer.enabled)
                             {
                                 return catalog.i18nc("@label:status", "Disabled");
                             }
 
-                            if(printJob != null)
+                            if (printJob != null)
                             {
                                 switch (printJob.status)
                                 {
@@ -263,29 +286,63 @@ Rectangle
                                     case "aborted":
                                         return catalog.i18nc("@label:status", "Print aborted");
                                     default:
-                                        return "";
+                                        return printerStatusText(printer);
                                 }
                             }
-                            return catalog.i18nc("@label:status", "Available");
+                            return printerStatusText(printer);
                         }
 
                         elide: Text.ElideRight
-
                         font: UM.Theme.getFont("small")
                     }
+
                     Label
                     {
                         id: progressText
                         anchors.right: parent.right
                         anchors.rightMargin: UM.Theme.getSize("default_margin").width
-
                         anchors.top: statusText.top
 
                         text: formatPrintJobPercent(printJob)
-                        visible: printJob != null && (["printing", "post_print", "pre_print", "sent_to_printer"].indexOf(printJob.status) !== -1)
+                        visible: printProgressTitleBar.showPercent
+                        //TODO: Hardcoded value
                         opacity: 0.65
                         font: UM.Theme.getFont("very_small")
                     }
+
+                    Image
+                    {
+                        width: statusText.height
+                        height: width
+                        anchors.right: parent.right
+                        anchors.rightMargin: UM.Theme.getSize("default_margin").width
+                        anchors.top: statusText.top
+
+                        visible: !printProgressTitleBar.showPercent
+
+                        source: {
+                            if (!printer.enabled)
+                            {
+                                return "blocked-icon.svg";
+                            }
+                            if (printJob != null)
+                            {
+                                if(printJob.status === "queued")
+                                {
+                                    if (printJob.configuration_changes_required != null && printJob.configuration_changes_required.length !== 0)
+                                    {
+                                        return "action-required-icon.svg";
+                                    }
+                                }
+                                else if (printJob.status === "wait_cleanup")
+                                {
+                                    return "checkmark-icon.svg";
+                                }
+                            }
+                            return "";  // We're not going to show it, so it will not be resolved as a url.
+                        }
+                    }
+
                     Rectangle
                     {
                         //TODO: This will become a progress bar in the future
@@ -308,13 +365,13 @@ Rectangle
 
                     width: parent.width - 2 * UM.Theme.getSize("default_margin").width
 
-                    visible: showExtended
+                    visible: printProgressArea.showExtended
 
                     Label   // Status detail
                     {
                         text:
                         {
-                            if ( ! printer.enabled)
+                            if (!printer.enabled)
                             {
                                 return catalog.i18nc("@label", "Not accepting print jobs");
                             }
@@ -344,6 +401,8 @@ Rectangle
                             }
                             return "";
                         }
+                        anchors.left: parent.left
+                        anchors.right: parent.right
                         elide: Text.ElideRight
                         font: UM.Theme.getFont("default")
                     }
@@ -351,7 +410,8 @@ Rectangle
                     Label   // Status 2nd row
                     {
                         text: {
-                          if(printJob != null) {
+                          if(printJob != null)
+                          {
                               if(printJob.status == "printing" || printJob.status == "post_print")
                               {
                                   return OutputDevice.getDateCompleted(printJob.time_total - printJob.time_elapsed)

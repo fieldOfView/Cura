@@ -222,10 +222,12 @@ class ThreeMFWorkspaceReader(WorkspaceReader):
             elif container_type == "definition_changes":
                 definition_name = instance_container.getName()
                 num_settings_overriden_by_definition_changes += len(instance_container._instances)
+                # Check if definition changes already exists.
                 definition_changes = self._container_registry.findInstanceContainers(id = container_id)
-                containers_found_dict["definition_changes"] = True
                 # Check if there is any difference the loaded settings from the project file and the settings in Cura.
                 if definition_changes:
+                    containers_found_dict["definition_changes"] = True
+                    # Check if there really is a conflict by comparing the values
                     if definition_changes[0] != instance_container:
                         definition_changes_conflict = True
             elif container_type == "quality":
@@ -302,7 +304,8 @@ class ThreeMFWorkspaceReader(WorkspaceReader):
         num_visible_settings = 0
         try:
             temp_preferences = Preferences()
-            temp_preferences.readFromFile(io.TextIOWrapper(archive.open("Cura/preferences.cfg")))  # We need to wrap it, else the archive parser breaks.
+            serialized = archive.open("Cura/preferences.cfg").read().decode("utf-8")
+            temp_preferences.deserialize(serialized)
 
             visible_settings_string = temp_preferences.getValue("general/visible_settings")
             if visible_settings_string is not None:
@@ -357,7 +360,7 @@ class ThreeMFWorkspaceReader(WorkspaceReader):
         #  - new:       create a new container
         #  - override:  override the existing container
         #  - None:      There is no conflict, which means containers with the same IDs may or may not be there already.
-        #               If there is an existing container, there is no conflict between the them, and default to "override"
+        #               If there is an existing container, there is no conflict between them, and default to "override"
         #               If there is no existing container, default to "new"
         #
         # Default values
@@ -370,7 +373,7 @@ class ThreeMFWorkspaceReader(WorkspaceReader):
 
     ## Overrides an ExtruderStack in the given GlobalStack and returns the new ExtruderStack.
     def _overrideExtruderStack(self, global_stack, extruder_file_content):
-        # get extruder position first
+        # Get extruder position first
         extruder_config = configparser.ConfigParser()
         extruder_config.read_string(extruder_file_content)
         if not extruder_config.has_option("metadata", "position"):
@@ -378,10 +381,13 @@ class ThreeMFWorkspaceReader(WorkspaceReader):
             Logger.log("e", "Could not find 'metadata/position' in extruder stack file")
             raise RuntimeError(msg)
         extruder_position = extruder_config.get("metadata", "position")
+        try:
+            extruder_stack = global_stack.extruders[extruder_position]
+        except KeyError:
+            Logger.log("w", "Could not find the matching extruder stack to override for position %s", extruder_position)
+            return None
 
-        extruder_stack = global_stack.extruders[extruder_position]
-
-        # override the given extruder stack
+        # Override the given extruder stack
         extruder_stack.deserialize(extruder_file_content)
 
         # return the new ExtruderStack
@@ -402,7 +408,8 @@ class ThreeMFWorkspaceReader(WorkspaceReader):
         # Create a shadow copy of the preferences (we don't want all of the preferences, but we do want to re-use its
         # parsing code.
         temp_preferences = Preferences()
-        temp_preferences.readFromFile(io.TextIOWrapper(archive.open("Cura/preferences.cfg")))  # We need to wrap it, else the archive parser breaks.
+        serialized = archive.open("Cura/preferences.cfg").read().decode("utf-8")
+        temp_preferences.deserialize(serialized)
 
         # Copy a number of settings from the temp preferences to the global
         global_preferences = Preferences.getInstance()
@@ -597,7 +604,9 @@ class ThreeMFWorkspaceReader(WorkspaceReader):
                         if self._resolve_strategies["machine"] == "new":
                             # The machine is going to get a spiffy new name, so ensure that the id's of user settings match.
                             old_extruder_id = instance_container.getMetaDataEntry("extruder", None)
-                            if old_extruder_id:
+                            # Note that in case of a quality_changes extruder means the definition id of the extruder stack
+                            # For the user settings, it means the actual extruder stack id it's assigned to.
+                            if old_extruder_id and old_extruder_id in extruder_stack_id_map:
                                 new_extruder_id = extruder_stack_id_map[old_extruder_id]
                                 instance_container.setMetaDataEntry("extruder", new_extruder_id)
 
@@ -699,8 +708,11 @@ class ThreeMFWorkspaceReader(WorkspaceReader):
                 extruder_file_content = archive.open(extruder_stack_file, "r").read().decode("utf-8")
 
                 if self._resolve_strategies["machine"] == "override":
-                    # deserialize new extruder stack over the current ones
-                    stack = self._overrideExtruderStack(global_stack, extruder_file_content)
+                    if global_stack.getProperty("machine_extruder_count", "value") > 1:
+                        # deserialize new extruder stack over the current ones (if any)
+                        stack = self._overrideExtruderStack(global_stack, extruder_file_content)
+                        if stack is None:
+                            continue
 
                 elif self._resolve_strategies["machine"] == "new":
                     new_id = extruder_stack_id_map[container_id]
@@ -732,8 +744,8 @@ class ThreeMFWorkspaceReader(WorkspaceReader):
                 # Create a new definition_changes container if it was empty
                 if stack.definitionChanges == self._container_registry.getEmptyInstanceContainer():
                     stack.setDefinitionChanges(CuraStackBuilder.createDefinitionChangesContainer(stack, stack._id + "_settings"))
-
-                extruder_stacks.append(stack)
+                if global_stack.getProperty("machine_extruder_count", "value") > 1:
+                    extruder_stacks.append(stack)
         except:
             Logger.logException("w", "We failed to serialize the stack. Trying to clean up.")
             # Something went really wrong. Try to remove any data that we added.

@@ -17,7 +17,7 @@ Column
     property int currentExtruderIndex: ExtruderManager.activeExtruderIndex;
     property bool currentExtruderVisible: extrudersList.visible;
 
-    spacing: UM.Theme.getSize("sidebar_margin").width * 0.9
+    spacing: Math.floor(UM.Theme.getSize("sidebar_margin").width * 0.9)
 
     signal showTooltip(Item item, point location, string text)
     signal hideTooltip()
@@ -38,15 +38,15 @@ Column
     {
         id: extruderSelectionRow
         width: parent.width
-        height: UM.Theme.getSize("sidebar_tabs").height * 2 / 3
+        height: Math.floor(UM.Theme.getSize("sidebar_tabs").height * 2 / 3)
         visible: machineExtruderCount.properties.value > 1 && !sidebar.monitoringPrint
 
         anchors
         {
             left: parent.left
-            leftMargin: UM.Theme.getSize("sidebar_margin").width * 0.7
+            leftMargin: Math.floor(UM.Theme.getSize("sidebar_margin").width * 0.7)
             right: parent.right
-            rightMargin: UM.Theme.getSize("sidebar_margin").width * 0.7
+            rightMargin: Math.floor(UM.Theme.getSize("sidebar_margin").width * 0.7)
             topMargin: UM.Theme.getSize("sidebar_margin").height
         }
 
@@ -62,9 +62,9 @@ Column
             anchors
             {
                 left: parent.left
-                leftMargin: UM.Theme.getSize("default_margin").width / 2
+                leftMargin: Math.floor(UM.Theme.getSize("default_margin").width / 2)
                 right: parent.right
-                rightMargin: UM.Theme.getSize("default_margin").width / 2
+                rightMargin: Math.floor(UM.Theme.getSize("default_margin").width / 2)
                 verticalCenter: parent.verticalCenter
             }
 
@@ -120,11 +120,11 @@ Column
                             width: {
                                 var extruderTextWidth = extruderStaticText.visible ? extruderStaticText.width : 0;
                                 var iconWidth = extruderIconItem.width;
-                                return extruderTextWidth + iconWidth + UM.Theme.getSize("default_margin").width / 2;
+                                return Math.floor(extruderTextWidth + iconWidth + UM.Theme.getSize("default_margin").width / 2);
                             }
 
                             // Static text "Extruder"
-                            Text
+                            Label
                             {
                                 id: extruderStaticText
                                 anchors.verticalCenter: parent.verticalCenter
@@ -152,7 +152,7 @@ Column
                                     var minimumWidth = control.width < UM.Theme.getSize("button").width ? control.width : UM.Theme.getSize("button").width;
                                     var minimumHeight = control.height < UM.Theme.getSize("button").height ? control.height : UM.Theme.getSize("button").height;
                                     var minimumSize = minimumWidth < minimumHeight ? minimumWidth : minimumHeight;
-                                    minimumSize -= UM.Theme.getSize("default_margin").width / 2;
+                                    minimumSize -= Math.floor(UM.Theme.getSize("default_margin").width / 2);
                                     return minimumSize;
                                 }
 
@@ -170,7 +170,7 @@ Column
                                     color: extruderNumberText.color
                                 }
 
-                                Text
+                                Label
                                 {
                                     id: extruderNumberText
                                     anchors.centerIn: parent
@@ -189,17 +189,17 @@ Column
                                     {
                                         right: parent.right
                                         top: parent.top
-                                        rightMargin: parent.sizeToUse * 0.01
-                                        topMargin: parent.sizeToUse * 0.05
+                                        rightMargin: Math.floor(parent.sizeToUse * 0.01)
+                                        topMargin: Math.floor(parent.sizeToUse * 0.05)
                                     }
 
                                     color: model.color
 
-                                    width: parent.width * 0.35
-                                    height: parent.height * 0.35
-                                    radius: width / 2
+                                    width: Math.floor(parent.width * 0.35)
+                                    height: Math.floor(parent.height * 0.35)
+                                    radius: Math.floor(width / 2)
 
-                                    border.width: 1
+                                    border.width: UM.Theme.getSize("default_lining")
                                     border.color: UM.Theme.getColor("extruder_button_material_border")
 
                                     opacity: !control.checked ? 0.6 : 1.0
@@ -216,7 +216,7 @@ Column
     Item
     {
         id: variantRowSpacer
-        height: UM.Theme.getSize("sidebar_margin").height / 4
+        height: Math.floor(UM.Theme.getSize("sidebar_margin").height / 4)
         width: height
         visible: !extruderSelectionRow.visible
     }
@@ -236,11 +236,11 @@ Column
             rightMargin: UM.Theme.getSize("sidebar_margin").width
         }
 
-        Text
+        Label
         {
             id: variantLabel
             text: Cura.MachineManager.activeDefinitionVariantsName;
-            width: parent.width * 0.45 - UM.Theme.getSize("default_margin").width
+            width: Math.floor(parent.width * 0.45 - UM.Theme.getSize("default_margin").width)
             font: UM.Theme.getFont("default");
             color: UM.Theme.getColor("text");
         }
@@ -254,7 +254,7 @@ Column
             visible: Cura.MachineManager.hasVariants && parent.variantsTerms.length == 0
 
             height: UM.Theme.getSize("setting_control").height
-            width: parent.width * 0.7 + UM.Theme.getSize("sidebar_margin").width
+            width: Math.floor(parent.width * 0.7 + UM.Theme.getSize("sidebar_margin").width)
             anchors.right: parent.right
             style: UM.Theme.styles.sidebar_header_button
             activeFocusOnPress: true;
@@ -268,7 +268,7 @@ Column
             visible: Cura.MachineManager.hasVariants && parent.variantsTerms.length > 0
             spacing: UM.Theme.getSize("default_margin").width
 
-            width: parent.width * 0.7 + UM.Theme.getSize("sidebar_margin").width
+            width: Math.floor(parent.width * 0.7 + UM.Theme.getSize("sidebar_margin").width)
             height: UM.Theme.getSize("setting_control").height
             anchors.right: parent.right
 
@@ -285,7 +285,7 @@ Column
                     property string activeVariantTerm: Cura.BlackBeltPlugin && Cura.BlackBeltPlugin.activeVariantTerms.length > index ? Cura.BlackBeltPlugin.activeVariantTerms[index] : ""
                     property int termIndex: index
 
-                    width: (variantTermsSelection.width - (variantTermsRepeater.count-1) *  UM.Theme.getSize("default_margin").width) / variantTermsRepeater.count
+                    width: Math.floor((variantTermsSelection.width - (variantTermsRepeater.count-1) *  UM.Theme.getSize("default_margin").width) / variantTermsRepeater.count)
                     height: UM.Theme.getSize("setting_control").height
                     style: UM.Theme.styles.sidebar_header_button
                     activeFocusOnPress: true;
@@ -364,7 +364,7 @@ Column
             enabled: !extrudersList.visible || base.currentExtruderIndex  > -1
 
             height: UM.Theme.getSize("setting_control").height
-            width: parent.width * 0.7 + UM.Theme.getSize("sidebar_margin").width
+            width: Math.floor(parent.width * 0.7 + UM.Theme.getSize("sidebar_margin").width)
             anchors.right: parent.right
             style: UM.Theme.styles.sidebar_header_button
             activeFocusOnPress: true;

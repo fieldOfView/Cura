@@ -39,7 +39,8 @@ Rectangle
                 return catalog.i18nc("@label:status", "Printing");
             case "idle":
                 return catalog.i18nc("@label:status", "Available");
-            case "unreachable":  // TODO: new string
+            case "unreachable":
+                return catalog.i18nc("@label:MonitorStatus", "Lost connection with the printer");
             case "maintenance":  // TODO: new string
             case "unknown":
             default:
@@ -51,7 +52,7 @@ Rectangle
     property var printer
 
     border.width: UM.Theme.getSize("default_lining").width
-    border.color: mouse.containsMouse ? UM.Theme.getColor("setting_control_border_highlight") : lineColor
+    border.color: mouse.containsMouse ? emphasisColor : lineColor
     z: mouse.containsMouse ? 1 : 0  // Push this item up a bit on mouse over to ensure that the highlighted bottom border is visible.
 
     property var printJob:
@@ -72,7 +73,7 @@ Rectangle
         hoverEnabled: true;
 
         // Only clickable if no printer is selected
-        enabled: OutputDevice.selectedPrinterName == ""
+        enabled: OutputDevice.selectedPrinterName == "" && printer.status !== "unreachable"
     }
 
     Row
@@ -165,6 +166,7 @@ Rectangle
                 anchors.right: printProgressArea.left
                 anchors.rightMargin: UM.Theme.getSize("default_margin").width
                 color: emphasisColor
+                opacity: printer != null && printer.status === "unreachable" ? 0.3 : 1
 
                 Image
                 {
@@ -189,7 +191,7 @@ Rectangle
                 PrintCoreConfiguration
                 {
                     id: leftExtruderInfo
-                    width: (parent.width - extruderSeperator.width) / 2
+                    width: Math.floor((parent.width - extruderSeperator.width) / 2)
                     printCoreConfiguration: printer.configuration[0]
                 }
 
@@ -204,7 +206,7 @@ Rectangle
                 PrintCoreConfiguration
                 {
                     id: rightExtruderInfo
-                    width: (parent.width - extruderSeperator.width) / 2
+                    width: Math.floor((parent.width - extruderSeperator.width) / 2)
                     printCoreConfiguration: printer.configuration[1]
                 }
             }
@@ -253,6 +255,11 @@ Rectangle
                             if (!printer.enabled)
                             {
                                 return catalog.i18nc("@label:status", "Disabled");
+                            }
+
+                            if (printer.status === "unreachable")
+                            {
+                                return printerStatusText(printer);
                             }
 
                             if (printJob != null)
@@ -325,6 +332,12 @@ Rectangle
                             {
                                 return "blocked-icon.svg";
                             }
+
+                            if (printer.status === "unreachable")
+                            {
+                                return "";
+                            }
+
                             if (printJob != null)
                             {
                                 if(printJob.status === "queued")
@@ -376,6 +389,11 @@ Rectangle
                                 return catalog.i18nc("@label", "Not accepting print jobs");
                             }
 
+                            if (printer.status === "unreachable")
+                            {
+                                return "";
+                            }
+
                             if(printJob != null)
                             {
                                 switch (printJob.status)
@@ -404,6 +422,8 @@ Rectangle
                         anchors.left: parent.left
                         anchors.right: parent.right
                         elide: Text.ElideRight
+                        wrapMode: Text.Wrap
+
                         font: UM.Theme.getFont("default")
                     }
 

@@ -913,7 +913,14 @@ Item
                     anchors.rightMargin: UM.Theme.getSize("sidebar_margin").width
                     anchors.top: parent.top
                     wrapMode: Text.WordWrap
-                    text: catalog.i18nc("@label", "Need help improving your prints?<br>Read the <a href='%1'>Ultimaker Troubleshooting Guides</a>").arg("https://ultimaker.com/en/troubleshooting")
+                    text:
+                    {
+                        var version = UM.Application.version;
+                        var machineName = Cura.MachineManager.activeMachine.definition.id;
+                        var troubleshootingUrl = "https://ultimaker.com/en/troubleshooting";
+                        var materialCompatibilityUrl = "https://ultimaker.com/materialcompatibility/" + version + "/" + machineName;
+                        return catalog.i18nc("@label", "Need help improving your prints?<br>Read the <a href='%1'>Ultimaker Troubleshooting Guides</a> and the <a href='%2'>Material Compatibility Guide</a>.").arg(troubleshootingUrl).arg(materialCompatibilityUrl)
+                    }
                     font: UM.Theme.getFont("default");
                     color: UM.Theme.getColor("text");
                     linkColor: UM.Theme.getColor("text_link")

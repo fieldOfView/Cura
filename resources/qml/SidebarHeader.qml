@@ -221,6 +221,46 @@ Column
         visible: !extruderSelectionRow.visible
     }
 
+    //Variant row
+    Item
+    {
+        id: variantRow
+        height: UM.Theme.getSize("sidebar_setup").height
+        visible: Cura.MachineManager.hasVariants && !sidebar.monitoringPrint && !sidebar.hideSettings
+
+        anchors
+        {
+            left: parent.left
+            leftMargin: UM.Theme.getSize("sidebar_margin").width
+            right: parent.right
+            rightMargin: UM.Theme.getSize("sidebar_margin").width
+        }
+
+        Label
+        {
+            id: variantLabel
+            text: Cura.MachineManager.activeDefinitionVariantsName;
+            width: Math.floor(parent.width * 0.45 - UM.Theme.getSize("default_margin").width)
+            font: UM.Theme.getFont("default");
+            color: UM.Theme.getColor("text");
+        }
+
+        ToolButton {
+            id: variantSelection
+            text: Cura.MachineManager.activeVariantName
+            tooltip: Cura.MachineManager.activeVariantName;
+            visible: Cura.MachineManager.hasVariants
+
+            height: UM.Theme.getSize("setting_control").height
+            width: Math.floor(parent.width * 0.7 + UM.Theme.getSize("sidebar_margin").width)
+            anchors.right: parent.right
+            style: UM.Theme.styles.sidebar_header_button
+            activeFocusOnPress: true;
+
+            menu: NozzleMenu { extruderIndex: base.currentExtruderIndex }
+        }
+    }
+
     // Material Row
     Item
     {
@@ -274,114 +314,6 @@ Column
             activeFocusOnPress: true;
 
             menu: MaterialMenu { extruderIndex: base.currentExtruderIndex }
-        }
-    }
-
-    //Variant row
-    Item
-    {
-        id: variantRow
-        height: UM.Theme.getSize("sidebar_setup").height
-        visible: Cura.MachineManager.hasVariants && !sidebar.monitoringPrint && !sidebar.hideSettings
-
-        anchors
-        {
-            left: parent.left
-            leftMargin: UM.Theme.getSize("sidebar_margin").width
-            right: parent.right
-            rightMargin: UM.Theme.getSize("sidebar_margin").width
-        }
-
-        Label
-        {
-            id: variantLabel
-            text: Cura.MachineManager.activeDefinitionVariantsName;
-            width: Math.floor(parent.width * 0.45 - UM.Theme.getSize("default_margin").width)
-            font: UM.Theme.getFont("default");
-            color: UM.Theme.getColor("text");
-        }
-
-        ToolButton {
-            id: variantSelection
-            text: Cura.MachineManager.activeVariantName
-            tooltip: Cura.MachineManager.activeVariantName;
-            visible: Cura.MachineManager.hasVariants
-
-            height: UM.Theme.getSize("setting_control").height
-            width: Math.floor(parent.width * 0.7 + UM.Theme.getSize("sidebar_margin").width)
-            anchors.right: parent.right
-            style: UM.Theme.styles.sidebar_header_button
-            activeFocusOnPress: true;
-
-            menu: NozzleMenu { extruderIndex: base.currentExtruderIndex }
-        }
-    }
-
-    // Material info row
-    Item
-    {
-        id: materialInfoRow
-        height: Math.floor(UM.Theme.getSize("sidebar_setup").height / 2)
-        visible: (Cura.MachineManager.hasVariants || Cura.MachineManager.hasMaterials) && !sidebar.monitoringPrint && !sidebar.hideSettings
-
-        anchors
-        {
-            left: parent.left
-            leftMargin: UM.Theme.getSize("sidebar_margin").width
-            right: parent.right
-            rightMargin: UM.Theme.getSize("sidebar_margin").width
-        }
-
-        Item {
-            height: UM.Theme.getSize("sidebar_setup").height
-            anchors.right: parent.right
-            width: Math.floor(parent.width * 0.7 + UM.Theme.getSize("sidebar_margin").width)
-
-            UM.RecolorImage {
-                id: warningImage
-                anchors.right: materialInfoLabel.left
-                anchors.rightMargin: UM.Theme.getSize("default_margin").width
-                anchors.verticalCenter: parent.Bottom
-                source: UM.Theme.getIcon("warning")
-                width: UM.Theme.getSize("section_icon").width
-                height: UM.Theme.getSize("section_icon").height
-                color: UM.Theme.getColor("material_compatibility_warning")
-                visible: !Cura.MachineManager.isCurrentSetupSupported
-            }
-
-            Label {
-                id: materialInfoLabel
-                wrapMode: Text.WordWrap
-                text: catalog.i18nc("@label", "<a href='%1'>Check material compatibility</a>")
-                font: UM.Theme.getFont("default")
-                color: UM.Theme.getColor("text")
-                linkColor: UM.Theme.getColor("text_link")
-                verticalAlignment: Text.AlignTop
-                anchors.top: parent.top
-                anchors.right: parent.right
-                anchors.bottom: parent.bottom
-
-                MouseArea {
-                    anchors.fill: parent
-                    hoverEnabled: true
-                    onClicked: {
-                        // open the material URL with web browser
-                        var version = UM.Application.version;
-                        var machineName = Cura.MachineManager.activeMachine.definition.id;
-                        var url = "https://ultimaker.com/materialcompatibility/" + version + "/" + machineName;
-                        Qt.openUrlExternally(url);
-                    }
-                    onEntered: {
-                        var content = catalog.i18nc("@tooltip", "Click to check the material compatibility on Ultimaker.com.");
-                        base.showTooltip(
-                            materialInfoRow,
-                            Qt.point(-UM.Theme.getSize("sidebar_margin").width, 0),
-                            catalog.i18nc("@tooltip", content)
-                        );
-                    }
-                    onExited: base.hideTooltip();
-                }
-            }
         }
     }
 

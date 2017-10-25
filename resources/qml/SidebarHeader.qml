@@ -216,17 +216,17 @@ Column
     Item
     {
         id: variantRowSpacer
-        height: UM.Theme.getSize("sidebar_margin").height / 4
+        height: Math.floor(UM.Theme.getSize("sidebar_margin").height / 4)
         width: height
         visible: !extruderSelectionRow.visible
     }
 
-    //Variant row
     Item
     {
         id: variantRow
+
         height: UM.Theme.getSize("sidebar_setup").height
-        visible: Cura.MachineManager.hasVariants && !sidebar.monitoringPrint && !sidebar.hideSettings
+        visible: (Cura.MachineManager.hasVariants || Cura.MachineManager.hasMaterials) && !sidebar.monitoringPrint && !sidebar.hideSettings
 
         anchors
         {
@@ -239,81 +239,89 @@ Column
         Label
         {
             id: variantLabel
-            text: Cura.MachineManager.activeDefinitionVariantsName;
-            width: Math.floor(parent.width * 0.45 - UM.Theme.getSize("default_margin").width)
+            width: Math.floor(parent.width * 0.3)
+
+            anchors.verticalCenter: parent.verticalCenter
+            anchors.left: variantRow.left
+
             font: UM.Theme.getFont("default");
             color: UM.Theme.getColor("text");
-        }
 
-        ToolButton {
-            id: variantSelection
-            text: Cura.MachineManager.activeVariantName
-            tooltip: Cura.MachineManager.activeVariantName;
-            visible: Cura.MachineManager.hasVariants
-
-            height: UM.Theme.getSize("setting_control").height
-            width: Math.floor(parent.width * 0.7 + UM.Theme.getSize("sidebar_margin").width)
-            anchors.right: parent.right
-            style: UM.Theme.styles.sidebar_header_button
-            activeFocusOnPress: true;
-
-            menu: NozzleMenu { extruderIndex: base.currentExtruderIndex }
-        }
-    }
-
-    // Material Row
-    Item
-    {
-        id: materialRow
-        height: UM.Theme.getSize("sidebar_setup").height
-        visible: Cura.MachineManager.hasMaterials && !sidebar.monitoringPrint && !sidebar.hideSettings
-
-        anchors
-        {
-            left: parent.left
-            leftMargin: UM.Theme.getSize("sidebar_margin").width
-            right: parent.right
-            rightMargin: UM.Theme.getSize("sidebar_margin").width
-        }
-
-        Label
-        {
-            id: materialLabel
-            text: catalog.i18nc("@label","Material");
-            width: Math.floor(parent.width * 0.45 - UM.Theme.getSize("default_margin").width)
-            font: UM.Theme.getFont("default");
-            color: UM.Theme.getColor("text");
-        }
-
-        ToolButton {
-            id: materialSelection
-            text: Cura.MachineManager.activeMaterialName
-            tooltip: Cura.MachineManager.activeMaterialName
-            visible: Cura.MachineManager.hasMaterials
-            property var valueError:
+            text:
             {
-                var data = Cura.ContainerManager.getContainerMetaDataEntry(Cura.MachineManager.activeMaterialId, "compatible")
-                if(data == "False")
+                var label;
+                if(Cura.MachineManager.hasVariants && Cura.MachineManager.hasMaterials)
                 {
-                    return true
+                    label = "%1 & %2".arg(Cura.MachineManager.activeDefinitionVariantsName).arg(catalog.i18nc("@label","Material"));
+                }
+                else if(Cura.MachineManager.hasVariants)
+                {
+                    label = Cura.MachineManager.activeDefinitionVariantsName;
                 }
                 else
                 {
-                    return false
+                    label = catalog.i18nc("@label","Material");
                 }
-
+                return "%1:".arg(label);
             }
-            property var valueWarning: ! Cura.MachineManager.isActiveQualitySupported
+        }
 
-            enabled: !extrudersList.visible || base.currentExtruderIndex  > -1
+        Item
+        {
+            id: materialVariantContainer
 
-            height: UM.Theme.getSize("setting_control").height
-            width: parent.width * 0.7 + UM.Theme.getSize("sidebar_margin").width
+            anchors.verticalCenter: parent.verticalCenter
             anchors.right: parent.right
-            style: UM.Theme.styles.sidebar_header_button
-            activeFocusOnPress: true;
 
-            menu: MaterialMenu { extruderIndex: base.currentExtruderIndex }
+            width: Math.floor(parent.width * 0.55 + UM.Theme.getSize("sidebar_margin").width)
+            height: UM.Theme.getSize("setting_control").height
+
+            ToolButton {
+                id: variantSelection
+                text: Cura.MachineManager.activeVariantName
+                tooltip: Cura.MachineManager.activeVariantName;
+                visible: Cura.MachineManager.hasVariants
+                enabled: !extrudersList.visible || base.currentExtruderIndex  > -1
+
+                height: UM.Theme.getSize("setting_control").height
+                width: materialSelection.visible ? Math.floor((parent.width - UM.Theme.getSize("default_margin").width) / 2) : parent.width
+                anchors.left: parent.left
+                style: UM.Theme.styles.sidebar_header_button
+                activeFocusOnPress: true;
+
+                menu: NozzleMenu { extruderIndex: base.currentExtruderIndex }
+            }
+
+            ToolButton {
+                id: materialSelection
+                text: Cura.MachineManager.activeMaterialName
+                tooltip: Cura.MachineManager.activeMaterialName
+                visible: Cura.MachineManager.hasMaterials
+                property var valueError:
+                {
+                    var data = Cura.ContainerManager.getContainerMetaDataEntry(Cura.MachineManager.activeMaterialId, "compatible")
+                    if(data == "False")
+                    {
+                        return true
+                    }
+                    else
+                    {
+                        return false
+                    }
+
+                }
+                property var valueWarning: ! Cura.MachineManager.isActiveQualitySupported
+
+                enabled: !extrudersList.visible || base.currentExtruderIndex  > -1
+
+                height: UM.Theme.getSize("setting_control").height
+                width: variantSelection.visible ? Math.floor((parent.width - UM.Theme.getSize("default_margin").width) / 2) : parent.width
+                anchors.right: parent.right
+                style: UM.Theme.styles.sidebar_header_button
+                activeFocusOnPress: true;
+
+                menu: MaterialMenu { extruderIndex: base.currentExtruderIndex }
+            }
         }
     }
 

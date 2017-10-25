@@ -313,21 +313,21 @@ Rectangle
         anchors.bottomMargin: Math.floor(UM.Theme.getSize("sidebar_margin").height * 2 + UM.Theme.getSize("progressbar").height + UM.Theme.getFont("default_bold").pixelSize)
     }
 
-    Rectangle
+    Item
     {
         id: printSpecs
         anchors.left: parent.left
         anchors.bottom: parent.bottom
         anchors.leftMargin: UM.Theme.getSize("sidebar_margin").width
         anchors.bottomMargin: UM.Theme.getSize("sidebar_margin").height
-        height: timeDetails.height + timeSpecDescription.height + lengthSpec.height
+        height: timeDetails.height + lengthSpec.height
         visible: !monitoringPrint
 
         Label
         {
             id: timeDetails
             anchors.left: parent.left
-            anchors.bottom: timeSpecDescription.top
+            anchors.bottom: lengthSpec.top
             font: UM.Theme.getFont("large")
             color: UM.Theme.getColor("text_subtext")
             text: (!base.printDuration || !base.printDuration.valid) ? catalog.i18nc("@label Hours and minutes", "00h 00min") : base.printDuration.getDisplayString(UM.DurationFormat.Short)
@@ -367,15 +367,6 @@ Rectangle
             }
         }
 
-        Label
-        {
-            id: timeSpecDescription
-            anchors.left: parent.left
-            anchors.bottom: lengthSpec.top
-            font: UM.Theme.getFont("very_small")
-            color: UM.Theme.getColor("text_subtext")
-            text: catalog.i18nc("@description", "Print time")
-        }
         Label
         {
             id: lengthSpec

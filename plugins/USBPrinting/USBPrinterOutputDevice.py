@@ -137,6 +137,22 @@ class USBPrinterOutputDevice(PrinterOutputDevice):
 
         self._printGCode(gcode_textio.getvalue())
 
+    def setBaudRate(self, speed = "AUTO"):
+        try:
+            speed = int(speed)
+        except ValueError:
+            pass
+
+        if speed in self._getBaudrateList():
+            self._baud_rate = speed
+        else:
+            self._baud_rate = 0 # Autodetect
+
+    def isConnected(self):
+        return self._connection_state != ConnectionState.closed and self._connection_state != ConnectionState.error
+
+
+
     ##  Start a print based on a g-code.
     #   \param gcode The g-code to print.
     def _printGCode(self, gcode: str):
